@@ -12,11 +12,21 @@
 % Regularization path. Entries are numbers that multiply lambda_est.
 % This script will solve l22-regularized Maxent with the hyperparameters
 % reg_path*lambda in an efficient manner.
-reg_path = [1000,100,50,25,10,5,1,0.5,0.25,0.1,0.05,0.01]; % 12 Entries. 
+reg_path = [1000,100,50,25,10,5,1,0.5,0.25];
+%reg_path = [1000,100,50,25,10,5,1,0.5,0.25,0.1,0.05,0.01]; % 12 Entries. 
 
 
 
 %% Extract the data and prepare it
+% (Note) Terminology
+% block0_values:
+% block1_values:
+% block2_values:
+% data8:
+
+% (Note) Normalization
+% [...]
+
 % Read the data
 A = [h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block0_values')',single(h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block1_values'))'];
 data8 = h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block2_values')';
@@ -36,7 +46,7 @@ n1 = length(unique(data8(ind_fire_yes,[2,4:5]),'rows'));
 % Normalize the features.
 % NOTE: Background features are normalized together.
 means_A = mean(A,1); A = A - means_A;
-sumsq_A = sum(A.^2); A = A./sqrt(sumsq_A/(n0+n1));
+sumsq_A = sum(A.^2); A = A./sqrt(sumsq_A/(n0+n1)); % Normalization
 b = A(ind_fire_yes,:);
 A = A(~ind_fire_yes,:);
 
@@ -118,7 +128,7 @@ for i=1:1:l_max
     % Display outcome
     disp(['Solution computed for lambda = ', num2str(t,'%.4e'), '. Number of iterations = ', num2str(num_iter_tot_reg), '.'])
     disp(['Total time elapsed = ',num2str(time_npdhg_regular),' seconds.'])
-    disp(['Relative l22 deviation from presence-only data: ',num2str(norm(Ed - A'*sol_npdhg_p(:,i+1))/norm(Ed))])
+    disp(['Relative l22 deviation from presence-only data: ',num2str(norm(Ed - A'*sol_npdhg_p(:,i+1))/norm(Ed))]) % Measure of how regularized the problem is.
     disp(' ')
     time_npdhg_total = time_npdhg_total + time_npdhg_regular;
 end
@@ -183,6 +193,7 @@ sol_p = pplus;
 sol_w = wplus;
 end
 
+%%%%%% Misc note %%%%%%
 
 %%% Misc
 % % NOTE: Background features are normalized separately from the
