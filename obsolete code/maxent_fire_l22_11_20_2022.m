@@ -1,35 +1,32 @@
 %% Script written by Gabriel Provencher Langlois
 % This script performs l22-regularized Maxent on the fire data set
-% provided by JB using the nPDHG algorithm developed by GPL and JD.
+% provided by Jatan Buch.
 
-% The nPDHG algorithm computes probabilities indirectly using the 
-% parametrization
-% p(j) = pprior(j)*exp(<z,Phi(j)>)/(sum_{j}pprior(j)*exp(<z,Phi(j)>))
-% for some vector z. This parametrization is motivated from the optimality
-% conditions of regularized-Maxent.
+
+
+%% Notes
 
 
 
 %% Input
 % Regularization path. Entries are numbers that multiply lambda_est.
-% This script solves l22-regularized Maxent with the hyperparameters
+% This script will solve l22-regularized Maxent with the hyperparameters
 % reg_path*lambda in an efficient manner.
-
-reg_path = [1000,100,50,25]; 
+reg_path = [1000,100,50];%,25,10,5,1,0.5,0.25];
 %reg_path = [1000,100,50,25,10,5,1,0.5,0.25,0.1,0.05,0.01]; % 12 Entries. 
 
 
 
 %% Extract the data and prepare it
+% (Note) Terminology
+% The features and quantities are listed at the bottom of the script,
+% after the code for the solver and before the misc information.
+
 % block0_values: 38 Features (see bottom of the script)
 % block1_values: 7 Features (see bottom of the script)
 % block2_values: 5 quantities (see bottom of the script)
 
-% The features and quantities are listed at the bottom of the script,
-% after the code for the solver and before the misc information.
-
 % Read the data
-% Note: The design matrix is an (n x m) matrix.
 A = [h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block0_values')',single(h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block1_values'))'];
 data8 = h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block2_values')';
 
@@ -46,23 +43,25 @@ n0 = length(unique(data8(~ind_fire_yes,[2,4:5]),'rows'));
 n1 = length(unique(data8(ind_fire_yes,[2,4:5]),'rows'));
 
 % Normalize the features.
-% Note: Background features are normalized together.
+% NOTE: Background features are normalized together.
 means_A = mean(A,1); A = A - means_A;
 sumsq_A = sum(A.^2); A = A./sqrt(sumsq_A/(n0+n1)); % Normalization
 b = A(ind_fire_yes,:);
 A = A(~ind_fire_yes,:);
 
 % Average over the features of the presence only data. We take the average
-% w.r.t. the uniform distribution with n1 elements.
+% w.r.t. the discrete distribution with n1 elements.
 Ed = b'*ones(n1,1)/n1;
 
+% Compute the prior distribution for this Maxent problem. The prior
+% distribution is uniform w.r.t. all background samples.
+pprior = ones(n0,1)/n0;
+
 % Compute an estimate of the parameter (for scaling purposes).
-% The prior distribution is uniform w.r.t. all background samples, i.e.,
-% ones(n0,1)/n0;
-lambda_est = norm(Ed - A'*(ones(n0,1)/n0));
+lambda_est = norm(Ed - A'*pprior);
 
 % Compute hyperparameters to be used
-lambda = lambda_est*reg_path;
+lambda = lambda_est*reg_path; % Do not modify.
 
 % Clear irrelevant arrays
 clear data8 ind_fire_yes ind_nan
@@ -73,7 +72,11 @@ clear data8 ind_fire_yes ind_nan
 % Dimensions
 m = length(Ed); % Number of features
 n = n0;         % Number of background samples
-l_max = length(lambda); % Length of the regularization path
+l_max = length(lambda);
+
+% Initial values
+init_sol_m = zeros(m,1);
+init_sol_n = pprior;
 
 % Strong convexity factor
 gamma_g = 1;
@@ -83,13 +86,13 @@ gamma_g = 1;
 % for the Maxent problem at lambda(1). The solutions are stored
 % in the columns 2:l_max+1.
 sol_npdhg_w = zeros(m,l_max+1);
-sol_npdhg_z = zeros(m,l_max+1);
-sol_npdhg_p = zeros(n,l_max+1); sol_npdhg_p(:,1) = compute_p(A,sol_npdhg_z(:,1));
+sol_npdhg_p = zeros(n,l_max+1);
+sol_npdhg_p(:,1) = init_sol_n;
 
 % Timings and Maximum number of iterations
 time_npdhg_regular = 0;
 time_npdhg_total = 0;
-max_iter = 2000;
+max_iter = 4000;
 
 
 
@@ -109,6 +112,7 @@ for i=1:1:l_max
     
     % Initialize the regularization hyperparameter and other parameters
     t = lambda(i); 
+    
     gamma_h = t;
     mu = 0.5*gamma_g*gamma_h/L12_sq;
     theta = 1 - mu*(sqrt(1 + 2/mu)-1);
@@ -116,9 +120,8 @@ for i=1:1:l_max
     sigma = 1/(theta*tau*L12_sq);
 
     % Call the solver for this problem
-    [sol_npdhg_w(:,i+1),sol_npdhg_z(:,i+1),num_iter_tot_reg] = ... 
-        npdhg_l22_solver(sol_npdhg_w(:,i),sol_npdhg_z(:,i),t,A,tau,sigma,theta,Ed,max_iter);   
-    sol_npdhg_p(:,i+1) = compute_p(A,sol_npdhg_z(:,i+1));
+    [sol_npdhg_w(:,i+1),sol_npdhg_p(:,i+1),num_iter_tot_reg] = ... 
+        npdhg_l22_solver(sol_npdhg_w(:,i),sol_npdhg_p(:,i),t,A,tau,sigma,theta,Ed,max_iter);    
     time_npdhg_regular = toc;
     
     % Display outcome
@@ -129,42 +132,27 @@ for i=1:1:l_max
     time_npdhg_total = time_npdhg_total + time_npdhg_regular;
 end
 disp(['Total time elapsed for the nPDHG method = ',num2str(time_npdhg_total + time_L12),' seconds.'])
-%% End of the script.
 
 
-
-%% Auxiliary functions
-function p = compute_p(A,z)
-% Compute a probability vector p from the formula
-% p(j) = exp([A*z]_{j})/(sum_{j}exp([A*z]_{j}))
-% for every j in {1,...,n} and some parameter z.
-
-x = A*z; a = max(x);
-w = exp(x-a);
-p = w/sum(w);
-end
+%% End of the script. Solver and misc information below.
 
 
 
 %% Solver
-function [sol_w,sol_z,num_iter_tot] = npdhg_l22_solver(w,z,lambda,A,tau,sigma,theta,Ed,max_iter)
+function [sol_w,sol_p,num_iter_tot] = npdhg_l22_solver(w,p,lambda,A,tau,sigma,theta,Ed,max_iter)
 % Nonlinear PDHG method for solving Maxent with 0.5*normsq{\cdot}.
 % Input variables:
 %   w = Array of dimension m x 1
-%   z = Array of dimension m x 1
+%   p = Array of dimension n x 1 that sums to one.
 %   lambda = parameter > 0
 %   A = An n x m matrix.
 %   tau, sigma, gamma_h, m, d, max_iter = real numbers
-%   Ed = Observed features of presence-only data. The features are averaged
-%   w.r.t. a uniform distribution.
 
 % Auxiliary variables
 wminus = w;
+factor1 = tau/(1+tau);
 factor2 = 1/(1+tau);
 factor3 = 1/(1+lambda*sigma);
-
-%p = A*z; p = exp(p-max(p));
-%p = p/sum(p);
 
 % Counter for the iterations
 num_iter_tot = 0;
@@ -173,33 +161,33 @@ num_iter_tot = 0;
 for k=1:1:max_iter
     num_iter_tot = num_iter_tot + 1;
     
-    % Update the primal variable and the probability
-    zplus = (z + tau*(w + theta*(w-wminus)))*factor2;
-    
-    % Compute pplus
-    temp = A*zplus; temp2 = max(temp);
-    temp3 = exp(temp - temp2);
+    % Update the primal variable
+    z = (w + theta*(w-wminus));
+    temp = A*z;
+    temp = temp*factor1;
+    temp2 = log(p)*factor2 + temp;
+    temp3 = exp(temp2);
     pplus = temp3/sum(temp3);
     
     % Update the dual variable
     temp4 = A'*pplus;
     wplus = factor3*(w + sigma*(Ed-temp4));
- 
+    
     % Check for convergence
     if((k >= 20) && (mod(k,10) == 0))
-        if((norm(wplus-w) < (1e-04)*norm(w)))
+        if((norm(pplus-p,1) < 1e-04))% && (norm(wplus-w) < norm(w)*(1e-04)))
+            % Note: Convergence seems slower in w.
             break
         end
     end
     
     % Increment
-    z = zplus;
-    %p = pplus;
+    p = pplus;
     wminus = w; w = wplus;
 end
 
 % Final solutions
-sol_z = zplus;
+sol_p = pplus;
 sol_w = wplus;
 end
 

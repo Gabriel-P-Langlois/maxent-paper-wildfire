@@ -163,8 +163,8 @@ wminus = w;
 factor2 = 1/(1+tau);
 factor3 = 1/(1+lambda*sigma);
 
-%p = A*z; p = exp(p-max(p));
-%p = p/sum(p);
+p = A*z; p = exp(p-max(p));
+p = p/sum(p);
 
 % Counter for the iterations
 num_iter_tot = 0;
@@ -194,7 +194,7 @@ for k=1:1:max_iter
     
     % Increment
     z = zplus;
-    %p = pplus;
+    p = p
     wminus = w; w = wplus;
 end
 
