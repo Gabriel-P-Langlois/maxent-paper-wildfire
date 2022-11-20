@@ -14,7 +14,7 @@
 
 % We can only apply a variable selection technique if we use both
 % background and presence data for the approximation of the spatial
-% density. 
+% density (?).
 
 %% Input
 % Regularization path. Entries are a sequence of positive numbers starting
@@ -22,7 +22,7 @@
 % This script solves l1-regularized Maxent with the hyperparameters
 % reg_path*lambda in an efficient manner.
 
-reg_path = [1,0.95,0.90]; 
+reg_path = [1,0.80,0.60,0.40,0.30,0.20]; 
 
 
 
@@ -198,3 +198,75 @@ end
 sol_z = zplus;
 sol_w = wplus;
 end
+
+
+%% Information regarding the wildfire data set.
+% h5read('clim_fire_freq_12km_w2020_data.h5','/df/block0_items')
+% 
+% ans =
+% 
+%   38×1 cell array
+%     {'Tmax       '}
+%     {'VPD        '}
+%     {'Prec       '}
+%     {'Solar      '}
+%     {'Wind       '}
+%     {'Elev       '}
+%     {'RH         '}
+%     {'FM1000     '}
+%     {'Ant_Tmax   '}
+%     {'AvgVPD_3mo '}
+%     {'Avgprec_3mo'}
+%     {'Ant_RH     '}
+%     {'CAPE       '}
+%     {'FFWI_max3  '}
+%     {'FFWI_max7  '}
+%     {'Tmin       '}
+%     {'Camp_dist  '}
+%     {'Camp_num   '}
+%     {'Road_dist  '}
+%     {'Avgprec_4mo'}
+%     {'Avgprec_2mo'}
+%     {'VPD_max3   '}
+%     {'VPD_max7   '}
+%     {'Tmax_max3  '}
+%     {'Tmax_max7  '}
+%     {'Tmin_max3  '}
+%     {'Tmin_max7  '}
+%     {'Slope      '}
+%     {'Southness  '}
+%     {'AvgVPD_4mo '}
+%     {'AvgVPD_2mo '}
+%     {'SWE_mean   '}
+%     {'SWE_max    '}
+%     {'AvgSWE_3mo '}
+%     {'Delta_T    '}
+%     {'Biomass    '}
+%     {'Lightning  '}
+%     {'RH_min3    '}
+
+% h5read('clim_fire_freq_12km_w2020_data.h5','/df/block1_items')
+% 
+% ans =
+% 
+%   7×1 cell array
+% 
+%     {'Antprec_lag1'}
+%     {'Forest      '}
+%     {'Grassland   '}
+%     {'Urban       '}
+%     {'Antprec_lag2'}
+%     {'Popdensity  '}
+%     {'Housedensity'}
+
+% h5read('clim_fire_freq_12km_w2020_data.h5','/df/block2_items')
+% 
+% ans =
+% 
+%   5×1 cell array
+% 
+%     {'fire_freq'}
+%     {'month    '}
+%     {'reg_indx '}
+%     {'X        '}
+%     {'Y        '}

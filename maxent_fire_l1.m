@@ -22,7 +22,7 @@
 % This script solves l1-regularized Maxent with the hyperparameters
 % reg_path*lambda in an efficient manner.
 
-reg_path = [1,0.95,0.90]; 
+reg_path = [1,0.80,0.60,0.40,0.30,0.20]; 
 
 
 
@@ -86,7 +86,7 @@ sol_npdhg_p = zeros(n,l_max); sol_npdhg_p(:,1) = compute_p(A,sol_npdhg_z(:,1));
 % Timings and Maximum number of iterations
 time_npdhg_regular = 0;
 time_npdhg_total = 0;
-max_iter = 500;
+max_iter = 2000;
 
 
 
