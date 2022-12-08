@@ -27,14 +27,19 @@
 
 % Main bottlenecks are the the computation of pplus and the dual variable.
 
-% It took ~ 3199.7547 seconds for GPL's laptop to process 
-% the regularization path
-% [1,0.9,0.75,0.5,0.4,0.35,0.3:-0.025:0.175,0.1675,0.16:-0.005:0.125,0.1225:-0.0025:0.1].
+
 
 %% Input
 % Regularization path stored as an array. The entries must be positive
 % and decreasing numbers starting from one.
 reg_path = [1,0.9,0.75,0.5,0.4,0.35,0.3:-0.025:0.175,0.1675,0.16:-0.005:0.125,0.1225:-0.0025:0.1];
+
+% Note: the regularization path
+%[1,0.9,0.75,0.5,0.4,0.35,0.3:-0.025:0.175,0.1675,0.16:-0.005:0.125,0.1225:-0.0025:0.1] 
+% took 3199.7547 seconds to run (31 values). 
+
+% Previous run #1: ~5200 seconds (semi-efficient primal update; no efficient dual update)
+% Previous run #2: ~3200 seconds (efficient primal update; no efficient dual update)
 
 % Tolerance for the optimality condition.
 tol = 1e-04;             

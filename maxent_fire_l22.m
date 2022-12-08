@@ -9,9 +9,20 @@
 % conditions of regularized-Maxent.
 
 
+
+%% Notes
+% It took ~405.2779 seconds on GPL's laptop to process the regularization
+% path [100,20,10,0.75,0.5,0.25,0.15,0.10,0.05,0.01,0.0075,0.005].
+
+
+
 %% Input
-% Regularization path. Entries are numbers that multiply lambda_est.
-reg_path = [100,20,10,0.75,0.5,0.25,0.15,0.10,0.05,0.01];
+% Regularization path. Entries are numbers that multiply a parameter
+% estimated from the data.
+reg_path = [100,20,10,0.75,0.5,0.25,0.15,0.10,0.05,0.01,0.0075,0.005];
+
+% Tolerance for the optimality condition.
+tol = 1e-04;           
 
 
 
@@ -97,7 +108,6 @@ disp('Algorithm: The nPGHG method (with regular sequence)')
 tic
 L12_sq = max(sum((A').^2));
 time_L12 = toc;
-disp(['Time for computing the maximum l2 norm of a row of A: ',num2str(time_L12), 's'])
 
 % Regularization path
 for i=1:1:l_max
@@ -114,7 +124,7 @@ for i=1:1:l_max
     % Call the solver for this problem and compute the resultant
     % probability distribution
     [sol_npdhg_w(:,i+1),sol_npdhg_z(:,i+1),sol_npdhg_p(:,i+1),Ed_minus_Ep,num_iter_tot_reg] = ... 
-        npdhg_l22_solver(sol_npdhg_w(:,i),sol_npdhg_z(:,i),t,A,tau,sigma,theta,Ed,max_iter);   
+        npdhg_l22_solver(sol_npdhg_w(:,i),sol_npdhg_z(:,i),t,A,tau,sigma,theta,Ed,max_iter,tol);   
     time_npdhg_regular = toc;
     
     % Display outcome
@@ -130,7 +140,7 @@ disp(['Total time elapsed for the nPDHG method = ',num2str(time_npdhg_total + ti
 
 
 %% Solver
-function [sol_w,sol_z,sol_p,Ed_minus_Ep,num_iter_tot] = npdhg_l22_solver(w,z,lambda,A,tau,sigma,theta,Ed,max_iter)
+function [sol_w,sol_z,sol_p,Ed_minus_Ep,k] = npdhg_l22_solver(w,z,lambda,A,tau,sigma,theta,Ed,max_iter,tol)
 % Nonlinear PDHG method for solving Maxent with 0.5*normsq{\cdot}.
 % Input variables:
 %   w: m x 1 vector -- Weights of the gibbs distribution.
@@ -141,39 +151,34 @@ function [sol_w,sol_z,sol_p,Ed_minus_Ep,num_iter_tot] = npdhg_l22_solver(w,z,lam
 %   tau, sigma, gamma_h: Positive numbers -- Stepsize parameters.
 %   Ed: m-dimensional vector -- Observed features of presence-only data. 
 %   max_iter: Positive integer -- Maximum number of iterations.
+%   tol:    Small number -- used for the convergence criterion
 
 % Auxiliary variables
 wminus = w;
-factor2 = 1/(1+tau);
-factor3 = 1/(1+lambda*sigma);
+factor1 = 1/(1+tau);
+factor2 = 1/(1+lambda*sigma);
 
-% Counter for the iterations
-num_iter_tot = 0;
-
-% Iterations
-for k=1:1:max_iter
-    num_iter_tot = num_iter_tot + 1;
+% Main algorithm
+k = 0; flag_convergence = true(1);
+while (flag_convergence)
+    % Update counter
+    k = k + 1;
     
     % Update the primal variable and the probability
-    zplus = (z + tau*(w + theta*(w-wminus)))*factor2;
+    zplus = (z + tau*(w + theta*(w-wminus)))*factor1;
     
     % Compute pplus
-    temp = A*zplus; temp2 = max(temp);
-    temp3 = exp(temp - temp2);
-    pplus = temp3/sum(temp3);
+    pplus = A*zplus;
+    pplus = exp(pplus - max(pplus)); norm_sum = sum(pplus);
     
     % Update the dual variable
-    temp4 = A'*pplus; 
-    temp4 = Ed-temp4;
-    wplus = factor3*(w + sigma*(temp4));
+    temp2 = (pplus'*A)';
+    temp2 = Ed - temp2/norm_sum;
+    wplus = factor2*(w + sigma*temp2);
  
-    % Check for convergence
-    if((k >= 15) && (mod(k,5) == 0))
-        if((norm(temp4 - lambda*wplus) < (1e-04)))
-            break
-        end
-    end
-    
+    % Convergence check
+    flag_convergence = ~(((k >= 15) && (norm(temp2 - lambda*wplus) < tol)) || (k >= max_iter));
+
     % Increment
     z = zplus;
     wminus = w; w = wplus;
@@ -182,8 +187,8 @@ end
 % Final solutions
 sol_w = wplus;
 sol_z = zplus;
-sol_p = pplus;
-Ed_minus_Ep = temp4;
+sol_p = pplus/norm_sum;
+Ed_minus_Ep = temp2;
 end
 
 
