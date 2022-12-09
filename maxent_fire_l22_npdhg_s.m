@@ -11,9 +11,8 @@
 
 
 %% Notes
-% It took ~405.2779 seconds on GPL's laptop to process the regularization
-% path [100,20,10,0.75,0.5,0.25,0.15,0.10,0.05,0.01,0.0075,0.005].
-
+% For the path [100,20,10,0.75,0.5,0.25,0.15,0.10,0.05,0.01,0.0075,0.005]:
+% nPDHG: ~ 321.482 seconds with tol 1e-04 and single precision.
 
 
 %% Input
@@ -36,8 +35,8 @@ tol = 1e-04;
 
 % Read the data
 % Note: The design matrix is an (n x m) matrix.
-A = [h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block0_values')',single(h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block1_values'))'];
-data8 = h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block2_values')';
+A = single([h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block0_values')',h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block1_values')']);
+data8 = single(h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block2_values')');
 
 % Remove NaN values
 ind_nan = isnan(A(:,1));
@@ -158,6 +157,12 @@ wminus = w;
 factor1 = 1/(1+tau);
 factor2 = 1/(1+lambda*sigma);
 
+% Current value of the gradient. Comment out as needed
+% p0 = A*z;
+% p0 = exp(p0-max(p0));
+% Ep = (p0'*A)'/sum(p0);
+% disp(['linf norm of the gradient of the primal problem:',num2str(norm(Ed - Ep - lambda*w,inf)),'.'])
+
 % Main algorithm
 k = 0; flag_convergence = true(1);
 while (flag_convergence)
@@ -176,12 +181,15 @@ while (flag_convergence)
     temp2 = Ed - temp2/norm_sum;
     wplus = factor2*(w + sigma*temp2);
  
-    % Convergence check
-    flag_convergence = ~(((k >= 15) && (norm(temp2 - lambda*wplus) < tol)) || (k >= max_iter));
-
+    % Convergence check:
+    flag_convergence = ~(((k >= 4) && (norm(temp2 - lambda*wplus,inf) < tol)) || (k >= max_iter));
+    
     % Increment
     z = zplus;
     wminus = w; w = wplus;
+    
+%     % Value of the iterate -- comment out as needed
+%     disp(['linf norm of the gradient of the primal problem:',num2str(norm(temp2 - lambda*wplus,inf)),'.'])
 end
 
 % Final solutions

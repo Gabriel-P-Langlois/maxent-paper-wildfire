@@ -1,6 +1,6 @@
 %% Script written by Gabriel Provencher Langlois
 % This script performs l22-regularized Maxent on the fire data set
-% provided by JB using L-BFGS as implemented in MATLAB.
+% provided by JB using the nPDHG algorithm developed by GPL and JD.
 
 % The nPDHG algorithm computes probabilities indirectly using the 
 % parametrization
@@ -12,13 +12,17 @@
 
 %% Notes
 % For the path [100,20,10,0.75,0.5,0.25,0.15,0.10,0.05,0.01,0.0075,0.005]:
-% L-BFGS: ~ 81.7091 seconds with tol 1e-04.
+% nPDHG: ~ 637.2635 seconds with tol 1e-04 and double precision.
+
 
 %% Input
-% Regularization path. Entries are numbers that multiply lambda_est.
-% This script solves l22-regularized Maxent with the hyperparameters
-% reg_path*lambda in an efficient manner.
+% Regularization path. Entries are numbers that multiply a parameter
+% estimated from the data.
 reg_path = [100,20,10,0.75,0.5,0.25,0.15,0.10,0.05,0.01,0.0075,0.005];
+
+% Tolerance for the optimality condition.
+tol = 1e-04;           
+
 
 
 %% Extract the data and prepare it
@@ -77,86 +81,122 @@ clear data8 ind_fire_yes ind_nan
 m = length(Ed); % Number of features
 l_max = length(lambda); % Length of the regularization path
 
-% Placeholders for solutions
-% Note: The first columns of these quantities are the initial values
-% for the Maxent problem at lambda(1). The solutions are stored
-% in the columns 2:l_max+1.
+% Strong convexity factor
+gamma_g = 1;
 
 % Placeholders for solutions
 % Note: The first columns of these quantities are the initial values
 % for the Maxent problem at lambda(1). The solutions are stored
 % in the columns 2:l_max+1.
 sol_npdhg_w = zeros(m,l_max+1); sol_npdhg_w(:,1) = val/lambda(1);
+sol_npdhg_z = zeros(m,l_max+1);
+sol_npdhg_p = zeros(n,l_max+1); sol_npdhg_p(:,1) = ones(n,1)/n;
 
 % Timings and Maximum number of iterations
-max_iter = 2000;
-time_lbfgs = 0;
-time_lbfgs_total = 0;
+time_npdhg_regular = 0;
+time_npdhg_total = 0;
+max_iter = 1000;
 
 
-%% Script for the lBFGS algorithm
+
+%% Script for the nPDHG algorithm
 disp(' ')
-disp('Algorithm: The lBFGS method (with regular sequence)')
+disp('Algorithm: The nPGHG method (with regular sequence)')
+    
+% Compute the matrix norm for the nPDHG algorithm
+tic
+L12_sq = max(sum((A').^2));
+time_L12 = toc;
 
 % Regularization path
 for i=1:1:l_max
     tic
     
-    % Call the solver for this problem
-    t = lambda(i);
-    sol_npdhg_w(:,i+1) = lbfgs_solver(sol_npdhg_w(:,i),t,A,Ed);
-    time_lbfgs = toc;
-    Ed_minus_Ep = Ed - ((compute_p(A,sol_npdhg_w(:,i+1)))'*A)';
+    % Initialize the regularization hyperparameter and other parameters
+    t = lambda(i); 
+    gamma_h = t;
+    mu = 0.5*gamma_g*gamma_h/L12_sq;
+    theta = 1 - mu*(sqrt(1 + 2/mu)-1);
+    tau = (1-theta)/(gamma_g*theta);
+    sigma = 1/(theta*tau*L12_sq);
+
+    % Call the solver for this problem and compute the resultant
+    % probability distribution
+    [sol_npdhg_w(:,i+1),sol_npdhg_z(:,i+1),sol_npdhg_p(:,i+1),Ed_minus_Ep,num_iter_tot_reg] = ... 
+        npdhg_l22_solver(sol_npdhg_w(:,i),sol_npdhg_z(:,i),t,A,tau,sigma,theta,Ed,max_iter,tol);   
+    time_npdhg_regular = toc;
     
     % Display outcome
-    disp(['Solution computed for lambda = ', num2str(t,'%.4e'), '.'])
-    disp(['Total time elapsed = ',num2str(time_lbfgs),' seconds.'])
+    disp(['Solution computed for lambda = ', num2str(t,'%.4e'), '. Number of iterations = ', num2str(num_iter_tot_reg), '.'])
+    disp(['Total time elapsed = ',num2str(time_npdhg_regular),' seconds.'])
     disp(['Relative l22 deviation from presence-only data: ', num2str(norm(Ed_minus_Ep)/norm(Ed))])
     disp(' ')
-    time_lbfgs_total = time_lbfgs_total + time_lbfgs;
+    time_npdhg_total = time_npdhg_total + time_npdhg_regular;
 end
-disp(['Total time elapsed for the l-BFGS method = ',num2str(time_lbfgs_total + time_lbfgs),' seconds.'])
+disp(['Total time elapsed for the nPDHG method = ',num2str(time_npdhg_total + time_L12),' seconds.'])
 % End of the script.
 
 
 
-%% Auxiliary functions
-function p = compute_p(A,w)
-% Compute a probability vector p from the formula
-% p(j) = exp([A*w]_{j})/(sum_{j}exp([A*w]_{j}))
-% for every j in {1,...,n} and vector w.
-
-x = A*w;
-w = exp(x-max(w));
-p = w/sum(w);
-end
-
-
-
 %% Solver
-function sol_w = lbfgs_solver(w0,lambda,A,Ed)
+function [sol_w,sol_z,sol_p,Ed_minus_Ep,k] = npdhg_l22_solver(w,z,lambda,A,tau,sigma,theta,Ed,max_iter,tol)
 % Nonlinear PDHG method for solving Maxent with 0.5*normsq{\cdot}.
 % Input variables:
-%   w = Array of dimension m x 1. This is the starting point.
-%   lambda = Positive scalar.
-%   A = An n x m matrix.
-%   Ed = Observed features of presence-only data.
+%   w: m x 1 vector -- Weights of the gibbs distribution.
+%   z: n x 1 vector -- Parameterization of the gibbs probability
+%   distribution, where p(j) = pprior(j)e^{<z,Phi(j)>-C}.
+%   lambda: Positive number -- Hyperparameter.
+%   A: n x m matrix -- Matrix of features (m) for each grid point (n).
+%   tau, sigma, gamma_h: Positive numbers -- Stepsize parameters.
+%   Ed: m-dimensional vector -- Observed features of presence-only data. 
+%   max_iter: Positive integer -- Maximum number of iterations.
+%   tol:    Small number -- used for the convergence criterion
 
-options = optimoptions('fminunc','Algorithm','quasi-newton','SpecifyObjectiveGradient',true,'MaxIterations',400,'OptimalityTolerance',1e-04,'Display','off');
-sol_w = fminunc(@l2maxent,w0,options);
+% Auxiliary variables
+wminus = w;
+factor1 = 1/(1+tau);
+factor2 = 1/(1+lambda*sigma);
 
-    function [f,g] = l2maxent(w)
-        % Note: The prior is assumed to be uniform.
-        % Compute the objective function
-        p = A*w; a = max(p);
-        p = exp(p-a); b = sum(p);
-        log_term = a + log(b);
-        f= log_term + (0.5*lambda)*sum((w.^2)) - Ed'*w;
-       
-        % Compute the gradient of the objective function
-        g = (p'*A)'/b;
-        g = g + lambda*w - Ed;
-    end
+% Current value of the gradient. Comment out as needed
+% p0 = A*z;
+% p0 = exp(p0-max(p0));
+% Ep = (p0'*A)'/sum(p0);
+% disp(['linf norm of the gradient of the primal problem:',num2str(norm(Ed - Ep - lambda*w,inf)),'.'])
+
+% Main algorithm
+k = 0; flag_convergence = true(1);
+while (flag_convergence)
+    % Update counter
+    k = k + 1;
+    
+    % Update the primal variable and the probability
+    zplus = (z + tau*(w + theta*(w-wminus)))*factor1;
+    
+    % Compute pplus
+    pplus = A*zplus;
+    pplus = exp(pplus - max(pplus)); norm_sum = sum(pplus);
+    
+    % Update the dual variable
+    temp2 = (pplus'*A)';
+    temp2 = Ed - temp2/norm_sum;
+    wplus = factor2*(w + sigma*temp2);
+ 
+    % Convergence check:
+    flag_convergence = ~(((k >= 4) && (norm(temp2 - lambda*wplus,inf) < tol)) || (k >= max_iter));
+    
+    % Increment
+    z = zplus;
+    wminus = w; w = wplus;
+    
+%     % Value of the iterate -- comment out as needed
+%     disp(['linf norm of the gradient of the primal problem:',num2str(norm(temp2 - lambda*wplus,inf)),'.'])
+end
+
+% Final solutions
+sol_w = wplus;
+sol_z = zplus;
+sol_p = pplus/norm_sum;
+Ed_minus_Ep = temp2;
 end
 
 
