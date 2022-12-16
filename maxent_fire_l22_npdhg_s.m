@@ -12,7 +12,7 @@
 
 %% Notes
 % For the path [100,20,10,0.75,0.5,0.25,0.15,0.10,0.05,0.01,0.0075,0.005]:
-% nPDHG: ~ 321.482 seconds with tol 1e-04 and single precision.
+% nPDHG: ~ 243.658 seconds with tol 1e-04 and single precision.
 
 
 %% Input
@@ -71,6 +71,16 @@ lambda_est = norm(Ed - A'*(ones(n,1)/n));
 % Compute hyperparameters to be used
 lambda = lambda_est*reg_path;
 
+% Compute the matrix norm for the nPDHG algorithm
+tic
+L12_sq = max(sum((A').^2));
+time_L12 = toc;
+
+% Take the transpose of the matrix
+% Note: This is for speeding up the calculations, since the number of
+% features is much smaller than the number of grid points.
+A = A';
+
 % Clear irrelevant arrays
 clear data8 ind_fire_yes ind_nan
 
@@ -102,11 +112,6 @@ max_iter = 1000;
 %% Script for the nPDHG algorithm
 disp(' ')
 disp('Algorithm: The nPGHG method (with regular sequence)')
-    
-% Compute the matrix norm for the nPDHG algorithm
-tic
-L12_sq = max(sum((A').^2));
-time_L12 = toc;
 
 % Regularization path
 for i=1:1:l_max
@@ -143,10 +148,10 @@ function [sol_w,sol_z,sol_p,Ed_minus_Ep,k] = npdhg_l22_solver(w,z,lambda,A,tau,s
 % Nonlinear PDHG method for solving Maxent with 0.5*normsq{\cdot}.
 % Input variables:
 %   w: m x 1 vector -- Weights of the gibbs distribution.
-%   z: n x 1 vector -- Parameterization of the gibbs probability
+%   z: m x 1 vector -- Parameterization of the gibbs probability
 %   distribution, where p(j) = pprior(j)e^{<z,Phi(j)>-C}.
 %   lambda: Positive number -- Hyperparameter.
-%   A: n x m matrix -- Matrix of features (m) for each grid point (n).
+%   A: m x n matrix -- Matrix of features (m) for each grid point (n).
 %   tau, sigma, gamma_h: Positive numbers -- Stepsize parameters.
 %   Ed: m-dimensional vector -- Observed features of presence-only data. 
 %   max_iter: Positive integer -- Maximum number of iterations.
@@ -156,12 +161,6 @@ function [sol_w,sol_z,sol_p,Ed_minus_Ep,k] = npdhg_l22_solver(w,z,lambda,A,tau,s
 wminus = w;
 factor1 = 1/(1+tau);
 factor2 = 1/(1+lambda*sigma);
-
-% Current value of the gradient. Comment out as needed
-% p0 = A*z;
-% p0 = exp(p0-max(p0));
-% Ep = (p0'*A)'/sum(p0);
-% disp(['linf norm of the gradient of the primal problem:',num2str(norm(Ed - Ep - lambda*w,inf)),'.'])
 
 % Main algorithm
 k = 0; flag_convergence = true(1);
@@ -173,11 +172,11 @@ while (flag_convergence)
     zplus = (z + tau*(w + theta*(w-wminus)))*factor1;
     
     % Compute pplus
-    pplus = A*zplus;
+    pplus = (zplus'*A)';
     pplus = exp(pplus - max(pplus)); norm_sum = sum(pplus);
     
     % Update the dual variable
-    temp2 = (pplus'*A)';
+    temp2 = A*pplus;
     temp2 = Ed - temp2/norm_sum;
     wplus = factor2*(w + sigma*temp2);
  

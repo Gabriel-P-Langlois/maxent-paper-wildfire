@@ -12,7 +12,7 @@
 
 %% Notes
 % For the path [100,20,10,0.75,0.5,0.25,0.15,0.10,0.05,0.01,0.0075,0.005]:
-% L-BFGS: ~ 81.7091 seconds with tol 1e-04.
+% L-BFGS: ~ 56.8978 seconds with tol 1e-04 and double precision.
 
 %% Input
 % Regularization path. Entries are numbers that multiply lambda_est.
@@ -30,7 +30,6 @@ reg_path = [100,20,10,0.75,0.5,0.25,0.15,0.10,0.05,0.01,0.0075,0.005];
 % block2_values: 5 quantities (see bottom of the script)
 
 % Read the data
-% Note: The design matrix is an (n x m) matrix.
 A = double([h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block0_values')',h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block1_values')']);
 data8 = double(h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block2_values')');
 
@@ -52,17 +51,20 @@ max_A = max(A);
 min_A = min(A);
 A = (A - min_A)./(max_A-min_A);
 
+% Take the transpose of the matrix
+A = A';
+
 % Average over the features of the presence only data. We take the average
 % w.r.t. the uniform distribution with n1 elements.
 % Note: We can weigh the background vs presence only data differently.
 pempirical = zeros(n,1); pempirical(ind_fire_yes) = 1/n1;
-Ed = A'*pempirical;
+Ed = A*pempirical;
 
 % Compute the smallest parameter for which the dual solution is zero.
 % Note: The prior distribution is uniform w.r.t. to the background *AND* 
 % presence samples. 
-val = Ed - A'*(ones(n,1)/n);
-lambda_est = norm(Ed - A'*(ones(n,1)/n));
+val = Ed - A*(ones(n,1)/n);
+lambda_est = norm(Ed - A*(ones(n,1)/n));
 
 % Compute hyperparameters to be used
 lambda = lambda_est*reg_path;
@@ -106,7 +108,7 @@ for i=1:1:l_max
     t = lambda(i);
     sol_npdhg_w(:,i+1) = lbfgs_solver(sol_npdhg_w(:,i),t,A,Ed);
     time_lbfgs = toc;
-    Ed_minus_Ep = Ed - ((compute_p(A,sol_npdhg_w(:,i+1)))'*A)';
+    Ed_minus_Ep = Ed - (A*compute_p(A,sol_npdhg_w(:,i+1)));
     
     % Display outcome
     disp(['Solution computed for lambda = ', num2str(t,'%.4e'), '.'])
@@ -125,8 +127,9 @@ function p = compute_p(A,w)
 % Compute a probability vector p from the formula
 % p(j) = exp([A*w]_{j})/(sum_{j}exp([A*w]_{j}))
 % for every j in {1,...,n} and vector w.
+% The matrix A is an m x n matrix.
 
-x = A*w;
+x = (w.'*A).';
 w = exp(x-max(w));
 p = w/sum(w);
 end
@@ -139,7 +142,7 @@ function sol_w = lbfgs_solver(w0,lambda,A,Ed)
 % Input variables:
 %   w = Array of dimension m x 1. This is the starting point.
 %   lambda = Positive scalar.
-%   A = An n x m matrix.
+%   A = An m x n matrix.
 %   Ed = Observed features of presence-only data.
 
 options = optimoptions('fminunc','Algorithm','quasi-newton','SpecifyObjectiveGradient',true,'MaxIterations',400,'OptimalityTolerance',1e-04,'Display','off');
@@ -148,13 +151,13 @@ sol_w = fminunc(@l2maxent,w0,options);
     function [f,g] = l2maxent(w)
         % Note: The prior is assumed to be uniform.
         % Compute the objective function
-        p = A*w; a = max(p);
+        p = (w.'*A)'; a = max(p);
         p = exp(p-a); b = sum(p);
         log_term = a + log(b);
         f= log_term + (0.5*lambda)*sum((w.^2)) - Ed'*w;
        
         % Compute the gradient of the objective function
-        g = (p'*A)'/b;
+        g = (A*p)/b;
         g = g + lambda*w - Ed;
     end
 end
