@@ -34,7 +34,7 @@
 %% Input
 % Regularization path stored as an array. The entries must be positive
 % and decreasing numbers starting from one.
-reg_path = [1,0.9,0.75,0.5,0.4,0.35,0.3:-0.025:0.175,0.1675,0.16:-0.005:0.125,0.1225:-0.0025:0.1];
+reg_path = [1,0.9,0.75]; %[1,0.9,0.75,0.5,0.4,0.35,0.3:-0.025:0.175,0.1675,0.16:-0.005:0.125,0.1225:-0.0025:0.1];
 
 % Tolerance for the optimality condition.
 tol = 1e-04;             
@@ -180,41 +180,37 @@ factor2 = tau*factor1;
 % Auxiliary variables I -- For the algorithm
 wminus = w; wplus = w;
 %p0 = exp(u-max(u)); sum_p0 = sum(p0);
-u = u*factor1;
-
-% Auxiliary variables II -- For indexing zero and nonzero quantities
-l_ind_w = (w~=0); l_indminus_w = l_ind_w;
-all_ind = 1:1:length(w);
-
-% Auxiliary variables III -- For speeding up the dual update
-%test_fac = ((p0'*A)')/sum_p0 - Ed;
+%tmp2 = ((p0'*A)')/sum_p0 - Ed;
 
 
 % Main algorithm
 k = 0; flag_convergence = true(1);
+m = length(w);
+u = u*factor1;
 while (flag_convergence)
     % Update counter
     k = k + 1;
-    
-    % Determine nonzero entries for the primal variable update.
-    idx_primal = all_ind(or(l_ind_w,l_indminus_w));
                           
     % Update the primal variable
-    for i=idx_primal
-        tmp = factor2*(w(i) + theta*(w(i)-wminus(i)));
-        u = u + A(:,i)*tmp;
+    for i=1:1:m
+       if((w(i) ~= 0) || (wminus(i) ~= 0))
+           tmp = factor2*(w(i) + theta*(w(i)-wminus(i)));
+           u = u + A(:,i)*tmp;
+       end
     end
     pplus = exp(u-max(u)); norm_sum = sum(pplus);
 
-    % Update the dual variable 
+    % Update the dual variable I -- Compute new expected value
     tmp2 = (pplus'*A)';
     tmp2 = tmp2/norm_sum - Ed;
+    
+    % Update the dual variable II -- Thresholding
     wplus = w - sigma*tmp2;
     temp3 = (abs(wplus)-sigma*lambda); temp3 = 0.5*(temp3+abs(temp3));
     wplus = sign(wplus).*temp3;
     
     % Convergence check -- We use the optimality condition on the l1 norm
-    flag_convergence = ~(((k >= 40) && (norm(tmp2(idx_primal),inf) <= lambda*(1 + tol))) || (k >= max_iter));
+    flag_convergence = ~(((k >= 40) && (norm(tmp2,inf) <= lambda*(1 + tol))) || (k >= max_iter));
     
     % Increment parameters, factors, nonzero indices, and variables.
     theta = 1/sqrt(1+tau); tau = theta*tau; sigma = sigma/theta;
@@ -222,10 +218,6 @@ while (flag_convergence)
     % Multiplicative factors
     factor1 = 1/(1+tau);
     factor2 = tau*factor1;
-    
-    % Identify nonzero indices
-    l_indminus_w = l_ind_w;
-    l_ind_w = wplus~=0;
     
     % Variables
     u = u*factor1;
