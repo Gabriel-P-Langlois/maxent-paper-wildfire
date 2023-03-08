@@ -34,7 +34,7 @@
 %% Input
 % Regularization path stored as an array. The entries must be positive
 % and decreasing numbers starting from one.
-reg_path = [1,0.9,0.75,0.74,0.73]; %[1,0.9,0.75,0.5,0.4,0.35,0.3:-0.025:0.175,0.1675,0.16:-0.005:0.125,0.1225:-0.0025:0.1];
+reg_path = [1,0.99,0.75,0.74,0.73]; %[1,0.9,0.75,0.5,0.4,0.35,0.3:-0.025:0.175,0.1675,0.16:-0.005:0.125,0.1225:-0.0025:0.1];
 
 % Tolerance for the optimality condition.
 tol = 1e-04;             
@@ -58,6 +58,15 @@ ind_nan = isnan(A(:,1));
 A = A(~ind_nan,:);
 data8 = data8(~ind_nan,:);
 
+% Obtain regional indices
+reg_index = data8(:,3);
+ind_r_zero = (reg_index == 0);
+
+% Discard data whose regional index is 0.
+reg_index(reg_index == 0) = [];
+A = A(~ind_r_zero,:);
+data8 = data8(~ind_r_zero,:);
+
 % Separate data with fires and those with no fire.
 ind_fire_yes = (data8(:,1) >= 1);
 
@@ -71,16 +80,35 @@ max_A = max(A);
 min_A = min(A);
 A = (A - min_A)./(max_A-min_A);
 
-% Average over the features of the presence only data. We take the average
-% w.r.t. the uniform distribution with n1 elements.
-% Note: We can weigh the background vs presence only data differently.
-pempirical = single(zeros(n,1)); pempirical(ind_fire_yes) = 1/n1;
+% Compute priors for the different regions + prior for the algorithm
+r = double(max(reg_index));
+nr = zeros(r,1);
+prior_r = zeros(r,1);
+pprior = zeros(n,1);
+for i=1:r
+    nr(i) = double(sum(reg_index == i));
+    prior_r(i) = (1/(nr(i)*r));
+    pprior(reg_index == i) = prior_r(i);
+end
+
+% Define the empirical distribution
+pempirical_r = zeros(r,1); pempirical = zeros(n,1); sum_pempirical = 0;
+for i=1:r
+    n1_r = length(unique(data8(and(ind_fire_yes, (reg_index == i)),[2,4:5]),'rows'));
+    pempirical_r(i) = (1/(nr(i)));
+    sum_pempirical = sum_pempirical + pempirical_r(i)*n1_r;
+end
+pempirical_r = pempirical_r/sum_pempirical;
+
+for i=1:r
+    pempirical(and(reg_index == i,ind_fire_yes),:) = pempirical_r(i);
+end
+
+% Define empirical distribution + its expected value % pempirical = single(zeros(n,1)); pempirical(ind_fire_yes) = 1/n1;
 Ed = A'*pempirical;
 
 % Compute the smallest parameter for which the dual solution is zero.
-% Note: The prior distribution is uniform w.r.t. to the background *AND* 
-% presence samples. 
-lambda_est = norm(Ed - A'*(ones(n,1)/n),inf);
+lambda_est = norm(Ed - A'*pprior,inf);
 
 % Compute hyperparameters to be used
 lambda = lambda_est*reg_path;
@@ -97,7 +125,7 @@ l_max = length(lambda); % Length of the regularization path
 
 % Placeholders for solutions
 sol_npdhg_w = single(zeros(m,l_max));
-sol_npdhg_p = single(zeros(n,l_max)); sol_npdhg_p(:,1) = ones(n,1)/n;
+sol_npdhg_p = single(zeros(n,l_max)); sol_npdhg_p(:,1) = pprior;
 
 % Timings and Maximum number of iterations
 time_npdhg_regular = 0;
@@ -122,7 +150,7 @@ for i=2:1:l_max
     alpha = t/lambda(i-1);
     s = alpha*sol_npdhg_p(:,i-1) + (1-alpha)*pempirical;
     lhs = abs(Ed - A'*sol_npdhg_p(:,i-1));    
-    test = kldiv(s,sol_npdhg_p(:,i-1))
+    disp(kldiv(s,sol_npdhg_p(:,i-1)))
     rhs = lambda(i-1) - vecnorm(A,inf)'*sqrt(2*kldiv(s,sol_npdhg_p(:,i-1)))/alpha;
     ind = (lhs >= rhs);         % Indices that are non-zero.
     
