@@ -1,28 +1,24 @@
-%% FUNCTION: Extract and process the data from the wildfire data set
-% Note: Jatan and I double-checked that the prior distribution he plots 
-% corresponds exactly to the prior distribution we use for pprior here.
+%% FUNCTION: Extract the data fr
 
 function [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,idx_features] = process_augment_wildfire_data
 
-
-%% Data extraction
-% Extract the features and their names
+% Extract the full feature matrix
 amat = [h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block0_values')', ...
     single(h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block1_values'))'];
+
 name_features = [h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block0_items')',h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block1_items')'].';
 
 % Remove Solar, Elev, Ant_Tmax, and Delta_T features.
-% Those correspond to entries 4, 6, 9, and 35.
+% Those are entries 4, 6, 9, and 35.
 amat(:,[4,6,9,35]) = [];
 name_features([4,6,9,35]) = [];
 
-% Store indices of relevant features.
 idx_features = (1:1:length(name_features)).';
 
 % Extract information, including presence of fire and regional indices.
 data_info = h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block2_values')';
 
-% Discard NaN values.
+% Discard NaN values
 ind_nan = isnan(amat(:,1));
 amat = amat(~ind_nan,:);
 data_info = data_info(~ind_nan,:);
@@ -82,16 +78,10 @@ reg_index_annual = reg_index(1:(12*nb_spatial_points));
 clear amat range fire_indicator reg_index ind_nan
 
 
-%% Algorithm preparation I: Compute the prior distribution
+%% Algorithm preparation I: Compute the prior
 pprior = ncread('pred_fire_masked_prob_all_mons.h5',"/df/block0_values").';
-
-% Remove nan value
-% Note: nan values grid cells correspond to gridcells in the ocean.
 ind_nan_mths = isnan(pprior);
-pprior = pprior(~ind_nan_mths); 
-
-% Set gridcells that did not observe a fire to a nonzero but insignificant
-% probablity.
+pprior = pprior(~ind_nan_mths);                     % Remove nan value
 pprior(pprior == 0) = min(pprior((pprior ~= 0)))/10;
 pprior = single(pprior/sum(pprior));
 
