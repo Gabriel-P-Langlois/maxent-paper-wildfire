@@ -112,8 +112,11 @@ idx_lambda_found = l1_wildfire_postprocessing(sol_npdhg_w,reg_path,name_features
 % using his Python code. Jatan has the function for that.
 %: Must be of double type!
 
+% Note: Data must be saved as double.
+
 h5create('my_example_file.h5', '/dataset1', size(sol_npdhg_p(:,end)));
-h5write('my_example_file.h5', '/dataset1', sol_npdhg_p(:,end));
+h5write('my_example_file.h5', '/dataset1', double(sol_npdhg_p(:,end)));
+test = h5read('my_example_file.h5', '/dataset1');
 
 % Visualize the probability vector
 
