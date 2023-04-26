@@ -114,9 +114,9 @@ idx_lambda_found = l1_wildfire_postprocessing(sol_npdhg_w,reg_path,name_features
 
 % Note: Data must be saved as double.
 
-h5create('my_example_file.h5', '/dataset1', size(sol_npdhg_p(:,end)));
-h5write('my_example_file.h5', '/dataset1', double(sol_npdhg_p(:,end)));
-test = h5read('my_example_file.h5', '/dataset1');
+h5create('my_example_file.h5', '/data', size(sol_npdhg_p(:,end)));
+h5write('my_example_file.h5', '/data', double(sol_npdhg_p(:,end)));
+test = h5read('my_example_file.h5', '/data');
 
 % Visualize the probability vector
 
