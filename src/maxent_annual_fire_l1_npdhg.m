@@ -30,7 +30,7 @@ tol = 1e-04;
 
 
 %% Data extraction
-[amat_annual,pprior,pempirical,Ed,n0,n1,name_features,idx_features] = process_augment_wildfire_data;
+[amat_annual,pprior,pempirical,Ed,n0,n1,name_features,idx_features,ind_nan_mths] = process_augment_wildfire_data;
 
 
 %% Compute hyperparameters
@@ -114,8 +114,14 @@ idx_lambda_found = l1_wildfire_postprocessing(sol_npdhg_w,reg_path,name_features
 
 % Note: Data must be saved as double.
 
-h5create('my_example_file.h5', '/data', size(sol_npdhg_p(:,end)));
-h5write('my_example_file.h5', '/data', double(sol_npdhg_p(:,end)));
+% Repopulate the probability vector with its NaN values
+ind_nan_mths = reshape(ind_nan_mths,[length(ind_nan_mths)*12,1]);
+prob_vector_to_save = zeros(length(ind_nan_mths),1);
+prob_vector_to_save(ind_nan_mths) = NaN;
+prob_vector_to_save(~ind_nan_mths) = sol_npdhg_p(:,end);
+
+h5create('my_example_file.h5', '/data', size(prob_vector_to_save));
+h5write('my_example_file.h5', '/data', double(prob_vector_to_save));
 test = h5read('my_example_file.h5', '/data');
 
 % Visualize the probability vector

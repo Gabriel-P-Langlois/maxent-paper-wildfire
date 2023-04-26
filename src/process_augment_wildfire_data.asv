@@ -1,30 +1,35 @@
-%% FUNCTION: Extract the data fr
+%% FUNCTION: Extract and process the data from the wildfire data set
+% Note: Jatan and I double-checked that the prior distribution he plots 
+% corresponds exactly to the prior distribution we use for pprior here.
 
-function [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,idx_features] = process_augment_wildfire_data
+function [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,idx_features,ind_nan,n_original] = process_augment_wildfire_data
 
-% Extract the full feature matrix
+
+%% Data extraction
+% Extract the features and their names
 amat = [h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block0_values')', ...
     single(h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block1_values'))'];
-
 name_features = [h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block0_items')',h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block1_items')'].';
 
 % Remove Solar, Elev, Ant_Tmax, and Delta_T features.
-% Those are entries 4, 6, 9, and 35.
+% Those correspond to entries 4, 6, 9, and 35.
 amat(:,[4,6,9,35]) = [];
 name_features([4,6,9,35]) = [];
 
+% Store indices of relevant features.
 idx_features = (1:1:length(name_features)).';
 
 % Extract information, including presence of fire and regional indices.
 data_info = h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block2_values')';
 
-% Discard NaN values
+% Discard NaN values.
 ind_nan = isnan(amat(:,1));
 amat = amat(~ind_nan,:);
 data_info = data_info(~ind_nan,:);
+n_original = length(amat(:,1));
 
 % Extract information, including presence of fire and regional indices.
-nb_months = data_info(end,2) - data_info(1,2) + 1;
+nb_months = data_info(end,2) - data_info(1,2) + 1
 nb_spatial_points = length(data_info(:,1))/nb_months;
 nb_years = nb_months/12;
 
@@ -75,13 +80,19 @@ amat_annual = (amat_annual - min_amat_annual)./...
 % Select subarray of regional indices for the first year only
 reg_index_annual = reg_index(1:(12*nb_spatial_points));
 
-clear amat range fire_indicator reg_index ind_nan
+clear amat range fire_indicator reg_index
 
 
-%% Algorithm preparation I: Compute the prior
+%% Algorithm preparation I: Compute the prior distribution
 pprior = ncread('pred_fire_masked_prob_all_mons.h5',"/df/block0_values").';
+
+% Remove nan value
+% Note: nan values grid cells correspond to gridcells in the ocean.
 ind_nan_mths = isnan(pprior);
-pprior = pprior(~ind_nan_mths);                     % Remove nan value
+pprior = pprior(~ind_nan_mths); 
+
+% Set gridcells that did not observe a fire to a nonzero but insignificant
+% probablity.
 pprior(pprior == 0) = min(pprior((pprior ~= 0)))/10;
 pprior = single(pprior/sum(pprior));
 

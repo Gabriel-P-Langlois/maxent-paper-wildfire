@@ -2,7 +2,7 @@
 % Note: Jatan and I double-checked that the prior distribution he plots 
 % corresponds exactly to the prior distribution we use for pprior here.
 
-function [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,idx_features] = process_augment_wildfire_data
+function [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,idx_features,ind_nan_mths] = process_augment_wildfire_data
 
 
 %% Data extraction
@@ -79,7 +79,7 @@ amat_annual = (amat_annual - min_amat_annual)./...
 % Select subarray of regional indices for the first year only
 reg_index_annual = reg_index(1:(12*nb_spatial_points));
 
-clear amat range fire_indicator reg_index ind_nan
+clear amat range fire_indicator reg_index
 
 
 %% Algorithm preparation I: Compute the prior distribution
@@ -88,7 +88,12 @@ pprior = ncread('pred_fire_masked_prob_all_mons.h5',"/df/block0_values").';
 % Remove nan value
 % Note: nan values grid cells correspond to gridcells in the ocean.
 ind_nan_mths = isnan(pprior);
+size(pprior)
+size(ind_nan_mths)
+
+% Flattens the prior distribution to a single row
 pprior = pprior(~ind_nan_mths); 
+size(pprior)
 
 % Set gridcells that did not observe a fire to a nonzero but insignificant
 % probablity.
