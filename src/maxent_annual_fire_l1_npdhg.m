@@ -12,8 +12,8 @@
 % Regularization path stored as an array. The entries must be positive
 % and decreasing numbers starting from one.
 
-reg_path = [1:-0.01:0.75,0.745:-0.005:0.50];%,...
-     %0.4975:-0.0025:0.35,0.349:-0.001:0.20];
+reg_path = [1:-0.01:0.75,0.745:-0.005:0.50, ...
+     0.4975:-0.0025:0.35];%,0.349:-0.001:0.20];
 
 % reg_path = [1:-0.01:0.75,0.745:-0.005:0.50,...
 %      0.4925:-0.0025:0.35,0.349:-0.001:0.20];
@@ -120,9 +120,9 @@ prob_vector_to_save = zeros(length(ind_nan_mths),1);
 prob_vector_to_save(ind_nan_mths) = NaN;
 prob_vector_to_save(~ind_nan_mths) = sol_npdhg_p(:,end);
 
-h5create('my_example_file.h5', '/data', size(prob_vector_to_save));
-h5write('my_example_file.h5', '/data', double(prob_vector_to_save));
-test = h5read('my_example_file.h5', '/data');
+h5create('my_example_file2.h5', '/data', size(prob_vector_to_save));
+h5write('my_example_file2.h5', '/data', double(prob_vector_to_save));
+test = h5read('my_example_file2.h5', '/data');
 
 % Visualize the probability vector
 

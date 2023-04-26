@@ -88,12 +88,9 @@ pprior = ncread('pred_fire_masked_prob_all_mons.h5',"/df/block0_values").';
 % Remove nan value
 % Note: nan values grid cells correspond to gridcells in the ocean.
 ind_nan_mths = isnan(pprior);
-size(pprior)
-size(ind_nan_mths)
 
 % Flattens the prior distribution to a single row
 pprior = pprior(~ind_nan_mths); 
-size(pprior)
 
 % Set gridcells that did not observe a fire to a nonzero but insignificant
 % probablity.
