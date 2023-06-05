@@ -1,6 +1,6 @@
 %% WIP
 
-function idx_lambda_found = l1_wildfire_postprocessing(sol_npdhg_w,reg_path,name_features)
+function idx_lambda_found = postprocess_wildfire_data(sol_npdhg_w,reg_path,name_features)
 
 % Example 1: Sparsity_plot
 % Count the number of nonzero elements at every hyperparameter and plot

@@ -1,12 +1,15 @@
 %% FUNCTION: Extract and process the data from the wildfire data set
-% Note: Jatan and I double-checked that the prior distribution he plots 
-% corresponds exactly to the prior distribution we use for pprior here.
-
-function [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,idx_features,ind_nan_mths] = process_augment_wildfire_data
+function [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,idx_features,ind_nan_mths] = prepare_wildfire_data(use_quadratic_features)
+%% Input
+% use_quadratic_features: Boolean variable. If set to true, the features
+% will be augmented to include quadratic products. E.g.,
+%   "VPD         x Ant_RH     "
+%   "Tmax_max3   x Forest      "
+%   "Tmax        x Forest      "
 
 
 %% Data extraction
-% Extract the features and their names
+% Extract the features (as a matrix) and their names (as a vector)
 amat = [h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block0_values')', ...
     single(h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block1_values'))'];
 name_features = [h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block0_items')',h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block1_items')'].';
@@ -36,7 +39,8 @@ fire_indicator = int64(zeros(length(data_info(:,1))/nb_years,1));
 reg_index = data_info(:,3);
 
 
-% Take the annual average of the wild fire data set and 
+%% Data processing I: Annual averaging and features preparation
+% Take the annual average of the wildfire data set and 
 % compute grid cells where at least one fire occured.
 amat_annual =  single(zeros(length(data_info(:,1))/nb_years,length(amat(1,:))));
 for i=1:1:nb_months
@@ -56,17 +60,18 @@ ind_fire_yes = (fire_indicator >= 1);
 n0 = length(ind_fire_yes(~ind_fire_yes));
 n1 = length(ind_fire_yes(ind_fire_yes));
 
-
-% Augment the annual matrix with product features
-m0 = size(amat_annual,2);
-amat_annual = [amat_annual,zeros(n0+n1,(m0+1)*m0/2)];
-name_features = [name_features;zeros((m0+1)*m0/2,1)];
-counter = 1;
-for i=1:1:m0
-    for j = i:1:m0
-        amat_annual(:,m0+counter) = amat_annual(:,i).*amat_annual(:,j);
-        name_features(m0+counter) = name_features(i) + " x " + name_features(j); 
-    counter = counter + 1;
+% Augment the annual matrix with product features if desired
+if(use_quadratic_features)
+    m0 = size(amat_annual,2);
+    amat_annual = [amat_annual,zeros(n0+n1,(m0+1)*m0/2)];
+    name_features = [name_features;zeros((m0+1)*m0/2,1)];
+    counter = 1;
+    for i=1:1:m0
+        for j = i:1:m0
+            amat_annual(:,m0+counter) = amat_annual(:,i).*amat_annual(:,j);
+            name_features(m0+counter) = name_features(i) + " x " + name_features(j); 
+        counter = counter + 1;
+        end
     end
 end
 
@@ -82,7 +87,7 @@ reg_index_annual = reg_index(1:(12*nb_spatial_points));
 clear amat range fire_indicator reg_index
 
 
-%% Algorithm preparation I: Compute the prior distribution
+%% Data processing II: Compute the prior distribution
 pprior = ncread('pred_fire_masked_prob_all_mons.h5',"/df/block0_values").';
 
 % Remove nan value
@@ -92,13 +97,13 @@ ind_nan_mths = isnan(pprior);
 % Flattens the prior distribution to a single row
 pprior = pprior(~ind_nan_mths); 
 
-% Set gridcells that did not observe a fire to a nonzero but insignificant
-% probablity.
+% Set gridcells that did not observe a fire to an insignificant 
+% but nonzero probablity.
 pprior(pprior == 0) = min(pprior((pprior ~= 0)))/10;
 pprior = single(pprior/sum(pprior));
 
 
-%% Algorithm preparation II: Compute the empirical distribution
+%% Data processing III: Compute the empirical distribution
 % Note: region labeled as 0 in the data is region labeled as 1 in the code.
 % n1_r == nb of grid points with a fire within the region i.
 
@@ -123,6 +128,7 @@ pempirical = single(pempirical);
 % Compute empirical features
 Ed = amat_annual'*pempirical;
 end
+
 
 
 
