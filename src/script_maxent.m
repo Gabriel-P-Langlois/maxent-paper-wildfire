@@ -12,37 +12,49 @@
 
 %% Notes
 % TODO:
-%   1) Update the manuscript and the section concerning the elastic net
-%   Maxent model. Most of it can be filled now, subject to changes to the
-%   methodology.
-
-%   2) Next step is to finish the postprocesseing aspect with the nPDHG
+%   1) Next step is to finish the postprocesseing aspect with the nPDHG
 %   algorithm (at least for the elastic net). Finish the analysis that
 %   Jatan wants here. We'll do the analysis for alpha = 0.95, 0.5 and maybe
 %   0.25.
+
+%   2) Update the manuscript and the section concerning the elastic net
+%   Maxent model. Most of it can be filled now, subject to changes to the
+%   methodology.
 
 %   3) While the analysis is underway, GPL can work on the other
 %   algorithms.
 
 %   4) Verify that the selection rule for the elastic net is correct.
 
+
 %% Options for the script
-% Elastic net parameter
+% Check for a new run. Set to 1 if you are doing a new run, 0 otherwise.
+% If set to 0, the script will not attempt to load the data
+new_run = 1;
+
+% Elastic net parameter and initialize structure of the regularization path
 alpha = 0.95;
 
-% threshold for using linear vs sublinear
-alpha_thresh = 0.35;    % use sublinear if alpha > alpha_thresh
+npts_path = 100;
+min_val_path = 0.35;
+reg_path = linspace(1,min_val_path,npts_path);
+
+% Threshold for using linear vs sublinear
+alpha_thresh = 0.30;    % use sublinear if alpha > alpha_thresh
 
 % Specify which algorithms to use
 use_npdhg = true;
-use_fista = false;
-use_cdescent = false;
+use_fista = false;      % Not implemented yet
+use_cdescent = false;   % Not implemented yet
 
 % Option to use quadratic features
 use_quadratic_features = false;
 
 % Tolerance for the optimality condition (for all methods)
 tol = 1e-4;
+
+% Maximum number of iterations in each algorithm before stopping
+max_iter = 10000;
 
 
 %% Data extraction
@@ -56,24 +68,19 @@ tol = 1e-4;
 % idx_features:     Indices associated to the features
 % ind_nan_mths:     Indices of grid cells that are not used.
 
-new_run = 1;
 if(new_run)
     % Read the data. Since it's too large, it is stored locally
     % On GPL computer, the data is located at ./.. from the project
     % directory.
     [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,idx_features,...
         ind_nan_mths] = prepare_wildfire_data(use_quadratic_features);
-    m = length(Ed); % Number of features
+    m = length(Ed);     % Number of features
 end
 
 
 %% Construct regularization path for the elastic net method
-% Initiate the regularization path.
-% The entries must be positive and decreasing numbers starting from one.
-reg_path = linspace(1,0.35,100);
-
 % Sequence of hyperparameters, starting from smallest value /w dual = 0
-% Must aboid setting alpha close to zero. 
+% If alpha < 0.05, constaint the initial parameter
 if(alpha >= 0.05)
     lambda_est = norm(Ed - amat_annual'*pprior,inf)/alpha;
 else
@@ -81,7 +88,6 @@ else
 end
 lambda = lambda_est*reg_path;
 l_max = length(lambda);
-max_iter = 50000;
 
 
 %% FIT AN ELASTIC NET REGULARIZED MAXENT MODEL TO THE REG. PATH VIA NPDHG
@@ -144,6 +150,18 @@ if(use_npdhg)
     disp('----------')
     disp(['Total time elasped for constructing the regularization path with the nPDHG algorithm: ',num2str(time_total), ' seconds.'])
     disp('----------')
+
+    % Save solutions and the regularization path to the data subdirectory
+    % Note: This assumes you are working from the project directory where
+    % the data folder is located.
+    save(strjoin(["data/reg_path_alpha=",num2str(alpha),",npts=",...
+        num2str(npts_path),",min_path=",num2str(min_val_path),'.mat'],''),'lambda')
+
+    save(strjoin(["data/p_sol_alpha=",num2str(alpha),",npts=",...
+        num2str(npts_path),",min_path=",num2str(min_val_path),'.mat'],''),'sol_npdhg_p')
+
+    save(strjoin(["data/w_sol_alpha=",num2str(alpha),",npts=",...
+        num2str(npts_path),",min_path=",num2str(min_val_path),'.mat'],''),'sol_npdhg_w')
 end
 
 
