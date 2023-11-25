@@ -45,8 +45,8 @@
     
         % Convergence check -- Check that the optimality condition of the
         % elastic net penalty is satisfied after enough iterations
-        flag_convergence = ~(((num_iters >= 40) && (norm(tmp2,1) <= ...
-            t*(1 + tol))) || (num_iters >= max_iters));
+        flag_convergence = ~convergence_criterion_inf(num_iters,max_iters,...
+                t,tmp2,tol);
     
         % Increment parameters
         theta = 1/sqrt(1+tau); tau = theta*tau; sigma = sigma/theta;

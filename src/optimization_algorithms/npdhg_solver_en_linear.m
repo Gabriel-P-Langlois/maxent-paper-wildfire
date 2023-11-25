@@ -53,8 +53,8 @@ function [w_out,p_out,num_iters] = npdhg_solver_en_linear(w_in,u_in,...
         % Convergence check -- Check that the optimality condition of the
         % elastic net penalty is satisfied after enough iterations
         %display(norm((1-alpha)*t*wplus + tmp2,inf) - alpha*t*(1+tol))
-        flag_convergence = ~(((num_iters >= 40) && (norm((1-alpha)*t*wplus + tmp2,inf) <= ...
-            max(tol,alpha*t*(1 + tol)) )) || (num_iters >= max_iters));
+        flag_convergence = ~convergence_criterion_en(num_iters,...
+            max_iters,t,alpha,wplus,tmp2,tol);
     
         % Increment variables
         u_in = u_in*factor1;

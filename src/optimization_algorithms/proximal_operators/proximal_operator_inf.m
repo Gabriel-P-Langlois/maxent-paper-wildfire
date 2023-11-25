@@ -13,6 +13,7 @@
 
 %% Function
 function yprox = proximal_operator_inf(x,t)
-yprox = max(abs(x)-max(max((cumsum(sort(abs(x),1,'descend'),1)-t)./(1:size(x,1))'),0),0).*sign(x);
+yprox = max(abs(x)-max(max((cumsum(sort(abs(x),1,'descend'),1)-t)...
+    ./(1:size(x,1))'),0),0).*sign(x);
 yprox = x - yprox;
 end

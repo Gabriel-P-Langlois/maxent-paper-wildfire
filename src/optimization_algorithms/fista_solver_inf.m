@@ -4,8 +4,8 @@
 % Maxent problem with the FISTA algorithm.
 
 
-function [w_out,p_out,num_iters] = fista_solver_inf(w_in,pprior,lambda,...
-    A,tau,mu,q,Ed,max_iter,tol)
+function [w_out,p_out,num_iters] = fista_solver_inf(w_in,pprior,t,...
+    A,tau,mu,q,Ed,max_iters,tol)
 
     % Auxiliary variables, factors and variables
     num_iters = 0; 
@@ -35,12 +35,12 @@ function [w_out,p_out,num_iters] = fista_solver_inf(w_in,pprior,lambda,...
         tmp = (pplus.'*A).' - Ed;
 
         % Compute the EN proximal operator
-        wplus = proximal_operator_inf(yk - tau*(tmp),lambda*tau);
+        wplus = proximal_operator_inf(yk - tau*(tmp),t*tau);
 
         % Convergence check -- Check that the optimality condition of the
         % elastic net penalty is satisfied after enough iterations
-        flag_convergence = ~(((num_iters >= 40) && (norm(tmp,1) <= ...
-            lambda*(1 + tol))) || (num_iters >= max_iter));
+        flag_convergence = ~convergence_criterion_inf(num_iters,max_iters,...
+                t,tmp,tol);
 
         % Increment
         tk = tkplus;

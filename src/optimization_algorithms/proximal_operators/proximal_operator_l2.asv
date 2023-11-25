@@ -11,6 +11,7 @@
 %% Function
 function yprox = proximal_operator_l2(x,t)
 
-yprox = max(0,1-t/norm(x))*x;
+yprox = 
+yprox = x - max(0,yprox);
 
 end

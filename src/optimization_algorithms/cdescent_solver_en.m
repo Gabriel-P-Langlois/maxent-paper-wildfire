@@ -16,7 +16,7 @@
 %   sol_p: n x 1 column vector -- primal solution
 
 function [w_out,p_out,num_iters] = cdescent_solver_en(w_in,pprior,...
-    t,alpha,A,Ed,max_iter,tol)
+    t,alpha,A,Ed,max_iters,tol)
 % Auxiliary variables -- For the algorithm
 tmp1 = ((pprior'*A)') - Ed;
 tmp2 = A*w_in;
@@ -75,8 +75,8 @@ while (flag_convergence)
     w_in = wplus;
 
     % Convergence check -- We use the optimality condition on the l1 normd
-    flag_convergence = ~(((num_iters >= 40) && (norm((1-alpha)*t*wplus + tmp1,inf) <= ...
-            alpha*t*(1 + tol))) || (num_iters >= max_iter));
+    flag_convergence = ~convergence_criterion_en(num_iters,...
+            max_iters,t,alpha,wplus,tmp1,tol);
 end
 
 % Final solutions

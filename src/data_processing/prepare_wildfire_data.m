@@ -1,5 +1,8 @@
 %% FUNCTION: Extract and process the data from the wildfire data set
-function [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,idx_features,ind_nan_mths] = prepare_wildfire_data(use_quadratic_features)
+function [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,...
+    idx_features,ind_nan_mths,groups] = prepare_wildfire_data(use_quadratic_features)
+
+
 %% Input
 % use_quadratic_features: Boolean variable. If set to true, the features
 % will be augmented to include quadratic products. E.g.,
@@ -12,12 +15,21 @@ function [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,idx_features,ind_
 % Extract the features (as a matrix) and their names (as a vector)
 amat = [h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block0_values')', ...
     single(h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block1_values'))'];
-name_features = [h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block0_items')',h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block1_items')'].';
+name_features = [h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block0_items')',...
+    h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block1_items')'].';
 
-% Remove Solar, Elev, Ant_Tmax, and Delta_T features.
-% Those correspond to entries 4, 6, 9, and 35.
-amat(:,[4,6,9,35]) = [];
-name_features([4,6,9,35]) = [];
+% Remove Solar, Elev, RH, Ant_RH, CAPE Ant_Tmax, FFWI_max3, Delta_T
+% Avgprec_3mo, AvgVPD_4mo, and RH_min3 features.
+
+amat(:,[4,6,7,9,11,12,13,14,30,35,38]) = [];
+name_features([4,6,7,9,11,12,13,14,30,35,38]) = [];
+
+% Groups extraction
+groups{1} = [1,2,3,4,5,7,8,14,15,16,17,18,19,23,24,27];   % fire 
+groups{2} = [6,12,13,22,25,28,32];                        % Antecedants
+groups{3} = [26,29,30,35];                                % Vegetation
+groups{4} = [9,10,11,31,33,34];                           % humans
+groups{5} = [20,21];                                      % Topography
 
 % Store indices of relevant features.
 idx_features = (1:1:length(name_features)).';
@@ -130,8 +142,6 @@ Ed = amat_annual'*pempirical;
 end
 
 
-
-
 %% Information regarding the wildfire data set.
 % block0_values: 38 Features (see bottom of the script)
 % block1_values: 7 Features (see bottom of the script)
@@ -139,71 +149,5 @@ end
 
 
 % h5read('clim_fire_freq_12km_w2020_data.h5','/df/block0_items')
-% 
-% ans =
-% 
-%   38×1 cell array
-%     {'Tmax       '}
-%     {'VPD        '}
-%     {'Prec       '}
-%     {'Solar      '}
-%     {'Wind       '}
-%     {'Elev       '}
-%     {'RH         '}
-%     {'FM1000     '}
-%     {'Ant_Tmax   '}
-%     {'AvgVPD_3mo '}
-%     {'Avgprec_3mo'}
-%     {'Ant_RH     '}
-%     {'CAPE       '}
-%     {'FFWI_max3  '}
-%     {'FFWI_max7  '}
-%     {'Tmin       '}
-%     {'Camp_dist  '}
-%     {'Camp_num   '}
-%     {'Road_dist  '}
-%     {'Avgprec_4mo'}
-%     {'Avgprec_2mo'}
-%     {'VPD_max3   '}
-%     {'VPD_max7   '}
-%     {'Tmax_max3  '}
-%     {'Tmax_max7  '}
-%     {'Tmin_max3  '}
-%     {'Tmin_max7  '}
-%     {'Slope      '}
-%     {'Southness  '}
-%     {'AvgVPD_4mo '}
-%     {'AvgVPD_2mo '}
-%     {'SWE_mean   '}
-%     {'SWE_max    '}
-%     {'AvgSWE_3mo '}
-%     {'Delta_T    '}
-%     {'Biomass    '}
-%     {'Lightning  '}
-%     {'RH_min3    '}
-
 % h5read('clim_fire_freq_12km_w2020_data.h5','/df/block1_items')
-% 
-% ans =
-% 
-%   7×1 cell array
-% 
-%     {'Antprec_lag1'}
-%     {'Forest      '}
-%     {'Grassland   '}
-%     {'Urban       '}
-%     {'Antprec_lag2'}
-%     {'Popdensity  '}
-%     {'Housedensity'}
-
 % h5read('clim_fire_freq_12km_w2020_data.h5','/df/block2_items')
-% 
-% ans =
-% 
-%   5×1 cell array
-% 
-%     {'fire_freq'}
-%     {'month    '}
-%     {'reg_indx '}
-%     {'X        '}
-%     {'Y        '}

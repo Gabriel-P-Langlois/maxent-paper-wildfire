@@ -1,26 +1,24 @@
 %% Script written by Gabriel Provencher Langlois
 % This script fits an elastic net regularized Maxent model on the fire data
-% set provided by Jatan Buch using the either the nPDHG algorithm developed
+% set provided by Jatan Buch using either the nPDHG algorithm developed
 % by Gabriel P. Langlois, the FISTA algorithm (Beck and Teboulle, 2009)
 % or the coordinate descent method of Cortes and al. (2015)
 
 % The wildfire data set contains spatial and temporal data about the
 % frequency of wildfires in the Western US continent. 
 
+% Run the script from the project directory where ./data is located.
+
 
 %% Notes
-% 1) Run the script from the project directory where ./data is located.
-% 2) (Minor issue) The first step of the npdhg algorithm is sometimes slow
-%    This seems to occurs when specifying many points early along
-%    the regularization path.
+% 1) (Minor issue) We cannot take too small steps in the regularization
+% paths
 
 
 %% Options for the script
-% Only modify the values below and not anywhere else in the script
-
 % Check for a new run. Set to 1 if you are doing a new run, 0 otherwise.
 % If set to 0, the script will not attempt to load the data
-new_run = 1;
+new_run = 0;
 
 % Option to output the result at each iteration if desired
 display_output = true;
@@ -37,12 +35,13 @@ use_npdhg = true;
 use_quadratic_features = false;
 
 % Elastic net parameter and initialize structure of the regularization path
-% For testing, use alpha = 1.0, npts_path = 100;, min_val_path = 0.70;
 alpha = 1.0;
-npts_path = 200;
-min_val_path = 0.50;
 
-reg_path = linspace(1,min_val_path,npts_path);
+min_val_path = 0.30;    % From 0.95*max value to min_val_path*max_value...
+npts_path = 300;        % ... in npts_path points
+
+reg_path = sort(union(linspace(1,0.95,20),...
+    linspace(0.95,min_val_path,npts_path)),'descend');
 
 % Threshold for using linear vs sublinear (sublinear if alpha > threshold)
 threshold = 0.30;
@@ -51,7 +50,7 @@ threshold = 0.30;
 tol = 1e-5;
 
 % Maximum number of iterations in each algorithm before stopping
-max_iter = 20000;
+max_iters = 20000;
 
 
 %% Data extraction
@@ -69,11 +68,9 @@ max_iter = 20000;
 % (i.e., spatial data set over the months of January through December).
 
 if(new_run)
-    % Read the data. Since it's too large, it is stored locally
-    % On GPL computer, the data is located at ./.. from the project
-    % directory.
+    % Read the data, which is assumed to be stored locally (not on github).
     [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,idx_features,...
-        ind_nan_mths] = prepare_wildfire_data(use_quadratic_features);
+        ind_nan_mths,~] = prepare_wildfire_data(use_quadratic_features);
     m = length(Ed);     % Number of features
 end
 
@@ -96,7 +93,6 @@ sol_p = single(zeros(n0+n1,l_max)); sol_p(:,1) = pprior;
 
 
 %% FIT AN ELASTIC NET REGULARIZED MAXENT MODEL VIA THE FISTA ALGORITHM
-% TODO: Estimation of the L22 norm...
 if(use_fista)
     disp(' ')
     disp('The FISTA method \w variable selection for elastic net Maxent')
@@ -118,8 +114,9 @@ if(use_fista)
         end
 
         % Initialize parameters
-        L22 = svds(double(amat_annual(:,ind)),1);
-        
+        %L22 = svds(double(amat_annual(:,ind)),1);
+        L22 = max(sum((amat_annual(:,ind).')));
+
         % Call the FISTA solver
         tau = 1/L22;
         mu = (1-alpha)*(lambda(i));
@@ -128,12 +125,13 @@ if(use_fista)
         [sol_w(ind,i),sol_p(:,i),num_iter_tot_reg] = ... 
             fista_solver_en(sol_w(ind,i-1),pprior,...
             lambda(i),alpha,amat_annual(:,ind),tau,mu,q,Ed(ind),...
-            max_iter,tol);   
+            max_iters,tol);   
 
         time_iter = toc;
         time_total = time_total + time_iter;
 
-        if(display_output) % Display outcome
+        % If enabled, the code below will print info about the iteration
+        if(display_output)
             disp(['Solution computed for lambda = ', num2str(lambda(i),'%.4e'), '. Number of primal-dual steps = ', num2str(num_iter_tot_reg), '.'])
             disp(['Time elapsed for solving the Maxent problem = ',...
                 num2str(time_iter),' seconds.'])
@@ -171,11 +169,12 @@ if(use_cdescent)
         % probability distribution.    
         [sol_w(ind,i),sol_p(:,i),num_iter_tot_reg] = ... 
             cdescent_solver_en(sol_w(ind,i-1),p_conv,lambda(i),...
-            alpha,amat_annual(:,ind),Ed(ind),max_iter,tol);   
+            alpha,amat_annual(:,ind),Ed(ind),max_iters,tol);   
         time_iter = toc;
         time_total = time_total + time_iter;
         
-        if(display_output) % Display outcome
+        % If enabled, the code below will print info about the iteration
+        if(display_output)
             disp(['Solution computed for lambda = ', num2str(lambda(i),'%.4e'), '. Number of iterations = ', num2str(num_iter_tot_reg), '.'])
             disp(['Total time elapsed = ',num2str(time_iter),' seconds.'])
             disp(' ')
@@ -212,15 +211,15 @@ if(use_npdhg)
         L12_sq = max(sum((amat_annual(:,ind).').^2));
         
         % Call the nPDHG solver
-        if(alpha > threshold)    % Algorithm sublinear convergence
+        if(alpha > threshold)   % Algorithm sublinear convergence
             theta = 0; tau = 2; sigma = 0.5/L12_sq;
             u_in = log(p_conv./pprior);
 
             [sol_w(ind,i),sol_p(:,i),num_iter_tot_reg] = ... 
                 npdhg_solver_en_sublinear(sol_w(ind,i-1),u_in,...
                 lambda(i),alpha,amat_annual(:,ind),tau,sigma,theta,Ed(ind),...
-                max_iter,tol);   
-        else                        % Algorithm with linear convergence
+                max_iters,tol);   
+        else                    % Algorithm with linear convergence
             mu = (1-alpha)*lambda(i)*0.5/L12_sq;
             theta = 1-mu*(sqrt(1+2/mu) - 1);
             tau = (1-theta)/theta; 
@@ -229,12 +228,13 @@ if(use_npdhg)
             [sol_w(ind,i),sol_p(:,i),num_iter_tot_reg] = ... 
                 npdhg_solver_en_linear(sol_w(ind,i-1),log(p_conv./pprior),...
                 lambda(i),alpha,amat_annual(:,ind),tau,sigma,theta,Ed(ind),...
-                max_iter,tol);   
+                max_iters,tol);   
         end
         time_iter = toc;
         time_total = time_total + time_iter;
 
-        if(display_output) % Display outcome
+        % If enabled, the code below will print info about the iteration
+        if(display_output)
             disp(['Solution computed for lambda = ', num2str(lambda(i),'%.4e'), '. Number of primal-dual steps = ', num2str(num_iter_tot_reg), '.'])
             disp(['Time elapsed for solving the Maxent problem = ',...
                 num2str(time_iter),' seconds.'])
