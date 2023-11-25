@@ -10,18 +10,13 @@
 % Run the script from the project directory where ./data is located.
 
 
-%% Notes
-% 1) (Minor issue) We cannot take too small steps in the regularization
-% paths
-
-
 %% Options for the script
-% Check for a new run. Set to 1 if you are doing a new run, 0 otherwise.
-% If set to 0, the script will not attempt to load the data
-new_run = 0;
+% Options for new run and using quadratic features
+new_run = true;
+use_quadratic_features = false;
 
 % Option to output the result at each iteration if desired
-display_output = true;
+display_output = false;
 
 % Option to save the results at the end if desired
 save_results = false;
@@ -31,20 +26,16 @@ use_fista = false;
 use_cdescent = false;
 use_npdhg = true;
 
-% Option to use quadratic features
-use_quadratic_features = false;
+% Elastic net parameter
+alpha = 0.95;
 
-% Elastic net parameter and initialize structure of the regularization path
-alpha = 1.0;
-
-min_val_path = 0.30;    % From 0.95*max value to min_val_path*max_value...
-npts_path = 300;        % ... in npts_path points
-
-reg_path = sort(union(linspace(1,0.95,20),...
-    linspace(0.95,min_val_path,npts_path)),'descend');
+% Initialize the structure of the regularization path
+reg_path = [1:-0.01:0.9,...
+    0.895:-0.005:0.35,...
+    0.3475:-0.0025:0.05];
 
 % Threshold for using linear vs sublinear (sublinear if alpha > threshold)
-threshold = 0.30;
+threshold = 0.45;
 
 % Tolerance for the optimality condition (for all methods)
 tol = 1e-5;
@@ -88,8 +79,9 @@ l_max = length(lambda);
 
 
 %% Placeholder solutions and quantities for timings
-sol_w = single(zeros(m,l_max));
-sol_p = single(zeros(n0+n1,l_max)); sol_p(:,1) = pprior;
+sol_w = zeros(m,l_max);
+sol_p = zeros(n0+n1,l_max); sol_p(:,1) = pprior;
+
 
 
 %% FIT AN ELASTIC NET REGULARIZED MAXENT MODEL VIA THE FISTA ALGORITHM
@@ -103,12 +95,12 @@ if(use_fista)
     for i=2:1:l_max
         tic
         % Variable selection for elastic net Maxent
-        [ind,~] = screening_en(lambda(i),lambda(i-1),...
+        ind = screening_en(lambda(i),lambda(i-1),...
             sol_p(:,i-1),pempirical,alpha,Ed,amat_annual,m);
     
         % Display percentage of zero coefficients
+        disp(['Iteration ',num2str(i),'/',num2str(l_max)])
         if(display_output)
-            disp(['Iteration ',num2str(i),'/',num2str(l_max)])
             disp(['Percentage of coefficients found to be zero: ',...
                 num2str(100-100*sum(ind)/m)])
         end
@@ -155,12 +147,12 @@ if(use_cdescent)
     for i=2:1:l_max
         tic
         % Variable selection for elastic net Maxent
-        [ind,p_conv] = screening_en(lambda(i),lambda(i-1),...
+        ind = screening_en(lambda(i),lambda(i-1),...
             sol_p(:,i-1),pempirical,alpha,Ed,amat_annual,m);
     
         % Display percentage of zero coefficients
+        disp(['Iteration ',num2str(i),'/',num2str(l_max)])
         if(display_output)
-            disp(['Iteration ',num2str(i),'/',num2str(l_max)])
             disp(['Percentage of coefficients found to be zero: ',...
                 num2str(100-100*sum(ind)/m)])
         end
@@ -168,7 +160,7 @@ if(use_cdescent)
         % Call the solver for this problem and compute the resultant
         % probability distribution.    
         [sol_w(ind,i),sol_p(:,i),num_iter_tot_reg] = ... 
-            cdescent_solver_en(sol_w(ind,i-1),p_conv,lambda(i),...
+            cdescent_solver_en(sol_w(ind,i-1),sol_p(:,i-1),lambda(i),...
             alpha,amat_annual(:,ind),Ed(ind),max_iters,tol);   
         time_iter = toc;
         time_total = time_total + time_iter;
@@ -197,12 +189,12 @@ if(use_npdhg)
     for i=2:1:l_max
         tic
         % Variable selection for elastic net Maxent
-        [ind,p_conv] = screening_en(lambda(i),lambda(i-1),...
+        ind = screening_en(lambda(i),lambda(i-1),...
             sol_p(:,i-1),pempirical,alpha,Ed,amat_annual,m);
     
         % Display percentage of zero coefficients
+        disp(['Iteration ',num2str(i),'/',num2str(l_max)])
         if(display_output)
-            disp(['Iteration ',num2str(i),'/',num2str(l_max)])
             disp(['Percentage of coefficients found to be zero: ',...
                 num2str(100-100*sum(ind)/m)])
         end
@@ -213,10 +205,9 @@ if(use_npdhg)
         % Call the nPDHG solver
         if(alpha > threshold)   % Algorithm sublinear convergence
             theta = 0; tau = 2; sigma = 0.5/L12_sq;
-            u_in = log(p_conv./pprior);
 
             [sol_w(ind,i),sol_p(:,i),num_iter_tot_reg] = ... 
-                npdhg_solver_en_sublinear(sol_w(ind,i-1),u_in,...
+                npdhg_solver_en_sublinear(sol_w(ind,i-1),pprior,...
                 lambda(i),alpha,amat_annual(:,ind),tau,sigma,theta,Ed(ind),...
                 max_iters,tol);   
         else                    % Algorithm with linear convergence
@@ -226,7 +217,7 @@ if(use_npdhg)
             sigma = (1-theta)/(theta*(1-alpha)*lambda(i));
 
             [sol_w(ind,i),sol_p(:,i),num_iter_tot_reg] = ... 
-                npdhg_solver_en_linear(sol_w(ind,i-1),log(p_conv./pprior),...
+                npdhg_solver_en_linear(sol_w(ind,i-1),pprior,...
                 lambda(i),alpha,amat_annual(:,ind),tau,sigma,theta,Ed(ind),...
                 max_iters,tol);   
         end

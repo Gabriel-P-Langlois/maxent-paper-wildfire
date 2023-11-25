@@ -14,7 +14,7 @@ function [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,...
 %% Data extraction
 % Extract the features (as a matrix) and their names (as a vector)
 amat = [h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block0_values')', ...
-    single(h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block1_values'))'];
+    h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block1_values')'];
 name_features = [h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block0_items')',...
     h5read('clim_fire_freq_12km_w2020_data.h5', '/df/block1_items')'].';
 
@@ -54,7 +54,7 @@ reg_index = data_info(:,3);
 %% Data processing I: Annual averaging and features preparation
 % Take the annual average of the wildfire data set and 
 % compute grid cells where at least one fire occured.
-amat_annual =  single(zeros(length(data_info(:,1))/nb_years,length(amat(1,:))));
+amat_annual =  zeros(length(data_info(:,1))/nb_years,length(amat(1,:)));
 for i=1:1:nb_months
     j = 1 + rem(i-1,12);
     range = (1 + (j-1)*nb_spatial_points):(j*nb_spatial_points);
@@ -63,7 +63,7 @@ for i=1:1:nb_months
     fire_indicator(range) = fire_indicator(range) + ...
         data_info((1 + (i-1)*nb_spatial_points):(i*nb_spatial_points),1);
 end
-amat_annual = amat_annual/single(nb_years);
+amat_annual = amat_annual/double(nb_years);
 
 % Separate data with fires and those with no fire.
 ind_fire_yes = (fire_indicator >= 1);
@@ -112,7 +112,7 @@ pprior = pprior(~ind_nan_mths);
 % Set gridcells that did not observe a fire to an insignificant 
 % but nonzero probablity.
 pprior(pprior == 0) = min(pprior((pprior ~= 0)))/10;
-pprior = single(pprior/sum(pprior));
+pprior = pprior/sum(pprior);
 
 
 %% Data processing III: Compute the empirical distribution
@@ -135,7 +135,6 @@ pempirical_r = pempirical_r/sum_pempirical;
 for i=1:r
     pempirical(and(reg_index_annual == i-1,ind_fire_yes),:) = pempirical_r(i);
 end
-pempirical = single(pempirical);
 
 % Compute empirical features
 Ed = amat_annual'*pempirical;

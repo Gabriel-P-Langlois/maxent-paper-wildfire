@@ -10,15 +10,12 @@
 % Run the script from the project directory where ./data is located.
 
 
-%% Notes
-% Missing variable selection
-
-
 %% Options for the script
-new_run = 1;
+% Options for new run and using quadratic features
+new_run = true;
 
 % Option to output the result at each iteration if desired
-display_output = true;
+display_output = false;
 
 % Option to save the results at the end if desired
 save_results = false;
@@ -27,12 +24,10 @@ save_results = false;
 use_fista = false;
 use_npdhg = true;
 
-% Elastic net parameter and initialize structure of the regularization path
-% For testing, use npts_path = 100;, min_val_path = 0.70;
-npts_path = 100;
-min_val_path = 0.75;
-
-reg_path = linspace(1,min_val_path,npts_path);
+% Initialize the structure of the regularization path
+reg_path = [1:-0.01:0.9,...
+    0.895:-0.005:0.35,...
+    0.3475:-0.0025:0.05];
 
 % Tolerance for the optimality condition (for all methods)
 tol = 1e-5;
@@ -60,6 +55,12 @@ if(new_run)
 
     % Total number of features
     m = length(Ed);     
+
+    % groups{1} = [1,2,3,4,5,7,8,14,15,16,17,18,19,23,24,27];   % fire 
+    % groups{2} = [6,12,13,22,25,28,32];                        % Antecedants
+    % groups{3} = [26,29,30,35];                                % Vegetation
+    % groups{4} = [9,10,11,31,33,34];                           % humans
+    % groups{5} = [20,21];                                      % Topography
 end
 
 
@@ -75,14 +76,14 @@ l_max = length(lambda);
 
 
 %% Placeholder solutions and quantities for timings
-sol_w = single(zeros(m,l_max));
-sol_p = single(zeros(n0+n1,l_max)); sol_p(:,1) = pprior;
+sol_w = zeros(m,l_max);
+sol_p = zeros(n0+n1,l_max); sol_p(:,1) = pprior;
 
 
 %% FIT AN ELASTIC NET REGULARIZED MAXENT MODEL VIA THE FISTA ALGORITHM
 if(use_fista)
     disp(' ')
-    disp('The FISTA method \w variable selection for elastic net Maxent')
+    disp('The FISTA method \w variable selection for nogl-regularized Maxent')
     
     time_total = 0;
     time_iter = 0; 
@@ -91,19 +92,9 @@ if(use_fista)
 
     for i=2:1:l_max
         tic
-        % % Variable selection for elastic net Maxent
-        % [ind,~] = screening_nogl(lambda(i),lambda(i-1),...
-        %     sol_p(:,i-1),pempirical,Ed,amat_annual,m);
-        % 
-        % Display percentage of zero coefficients
-        if(display_output)
-            disp(['Iteration ',num2str(i),'/',num2str(l_max)])
-            % disp(['Percentage of coefficients found to be zero: ',...
-            %     num2str(100-100*sum(ind)/m)])
-        end
 
-        % Initialize parameters
-        
+        % Display percentage of zero coefficients
+        disp(['Iteration ',num2str(i),'/',num2str(l_max)])
         
         % Call the FISTA solver
         tau = 1/L22;
@@ -135,7 +126,7 @@ end
 %% FIT AN ELASTIC NET REGULARIZED MAXENT MODEL VIA NPDHG
 if(use_npdhg)
     disp(' ')
-    disp('The nPGHG method \w variable selection for elastic net Maxent')
+    disp('The nPGHG method \w variable selection for nogl-regularized Maxent')
 
     time_total = 0;
     time_iter = 0; 
@@ -144,26 +135,14 @@ if(use_npdhg)
     
     for i=2:1:l_max
         tic
-        % % Variable selection for elastic net Maxent
-        % [ind,p_conv] = screening_nogl(lambda(i),lambda(i-1),...
-        %     sol_p(:,i-1),pempirical,Ed,amat_annual,m);
 
         % Display percentage of zero coefficients
-        if(display_output)
-            disp(['Iteration ',num2str(i),'/',num2str(l_max)])
-            % disp(['Percentage of coefficients found to be zero: ',...
-            %     num2str(100-100*sum(ind)/m)])
-        end
-
-        % Initialize parameters
+        disp(['Iteration ',num2str(i),'/',num2str(l_max)])
         
         % Call the nPDHG solver
         theta = 0; tau = 2; sigma = 0.5/L12_sq;
-        %u_in = log(p_conv./pprior);
-
-        u_in = log(sol_p(:,i-1)./pprior);
         [sol_w(:,i),sol_p(:,i),num_iter_tot_reg] = ... 
-            npdhg_solver_nogl(sol_w(:,i-1),u_in,...
+            npdhg_solver_nogl(sol_w(:,i-1),pprior,...
             lambda(i),groups,amat_annual,tau,sigma,theta,Ed,...
             max_iter,tol);   
 

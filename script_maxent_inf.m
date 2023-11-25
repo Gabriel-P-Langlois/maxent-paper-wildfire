@@ -11,8 +11,9 @@
 
 
 %% Options for the script
-% If set to 0, the script will not attempt to load the data
-new_run = 1;
+% Options for new run and using quadratic features
+new_run = true;
+use_quadratic_features = false;
 
 % Option to output the result at each iteration if desired
 display_output = false;
@@ -24,14 +25,10 @@ save_results = false;
 use_fista = false;
 use_npdhg = true;
 
-% Option to use quadratic features
-use_quadratic_features = false;
-
-% Initialize structure of the regularization path
-npts_path = 50;
-min_val_path = 0.50;
-
-reg_path = linspace(1,min_val_path,npts_path);
+% Initialize the structure of the regularization path
+reg_path = [1:-0.01:0.9,...
+    0.895:-0.005:0.35,...
+    0.3475:-0.0025:0.05];
 
 % Tolerance for the optimality condition (for all methods)
 tol = 1e-6;
@@ -71,8 +68,8 @@ l_max = length(lambda);
 
 
 %% Placeholder solutions and quantities for timings
-sol_w = single(zeros(m,l_max));
-sol_p = single(zeros(n0+n1,l_max)); sol_p(:,1) = pprior;
+sol_w = zeros(m,l_max);
+sol_p = zeros(n0+n1,l_max); sol_p(:,1) = pprior;
 
 
 %% FIT AN linf REGULARIZED MAXENT MODEL VIA THE FISTA ALGORITHM
@@ -137,7 +134,7 @@ if(use_npdhg)
         u_in = log(sol_p(:,i-1)./pprior);
 
         [sol_w(:,i),sol_p(:,i),num_iter_tot_reg] = ... 
-            npdhg_solver_inf(sol_w(:,i-1),u_in,...
+            npdhg_solver_inf(sol_w(:,i-1),pprior,...
             lambda(i),amat_annual,tau,sigma,theta,Ed,...
             max_iter,tol); 
 
