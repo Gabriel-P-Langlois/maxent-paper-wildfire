@@ -6,7 +6,7 @@ function stop = convergence_criterion_nogl(num_iters,max_iters,...
         stop = 1;
         G = length(groups);
         for g=1:G
-            ind = groups{g};
+            ind = groups{2,g};
             l = sqrt(length(ind));
             stop = stop*(norm(diff(ind),2) <= l*t*(1+tol));
         end

@@ -10,6 +10,15 @@
 % Run the script from the project directory where ./data is located.
 
 
+%% Notes
+% The regularization path (with quadratic features)
+% reg_path = [1:-0.01:0.9,...
+%     0.895:-0.005:0.30,...
+%     0.2975:-0.0025:0.01];
+% takes about ten minutes to complete with the nPDHG algorithm on GPL's
+% laptop.
+
+
 %% Options for the script
 % Options for new run and using quadratic features
 new_run = true;
@@ -27,8 +36,8 @@ use_npdhg = true;
 
 % Initialize the structure of the regularization path
 reg_path = [1:-0.01:0.9,...
-    0.895:-0.005:0.35,...
-    0.3475:-0.0025:0.05];
+    0.895:-0.005:0.30,...
+    0.2975:-0.0025:0.01];
 
 % Tolerance for the optimality condition (for all methods)
 tol = 1e-6;
@@ -47,6 +56,7 @@ max_iter = 20000;
 % name_features:    Name of the features
 % idx_features:     Indices associated to the features
 % ind_nan_mths:     Indices of grid cells that are not used.
+% groups:           Groupings of the features for the group lasso
 
 % Note: We are averaging the temporal data individually over each month 
 % (i.e., spatial data set over the months of January through December).
@@ -54,7 +64,7 @@ max_iter = 20000;
 if(new_run)
     % Read the data, which is assumed to be stored locally (not on github).
     [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,idx_features,...
-        ind_nan_mths,~] = prepare_wildfire_data(use_quadratic_features);
+        ind_nan_mths,groups] = prepare_wildfire_data(use_quadratic_features);
     m = length(Ed);     % Number of features
 end
 
@@ -160,20 +170,30 @@ end
 % Note: This assumes you are working from the project directory where
 % the data folder is located.
 if(save_results)
-    save(strjoin(["data/generated_data/reg_path_linf,npts=",...
-        num2str(npts_path),",min_path=",num2str(min_val_path),...
+    save(strjoin(["data/generated_data/reg_path_linf",...
+        ",min_path=",num2str(reg_path(end))...
         ",quad_features=",num2str(use_quadratic_features),'.mat'],''),'lambda')
     
-    save(strjoin(["data/generated_data/p_sol_linf,npts=",...
-        num2str(npts_path),",min_path=",num2str(min_val_path),...
+    save(strjoin(["data/generated_data/p_sol_linf",...
+        ",min_path=",num2str(reg_path(end))...
         ",quad_features=",num2str(use_quadratic_features),'.mat'],''),'sol_p')
     
-    save(strjoin(["data/generated_data/w_sol_linf,npts=",...
-        num2str(npts_path),",min_path=",num2str(min_val_path)...
+    save(strjoin(["data/generated_data/w_sol_linf",...
+        ",min_path=",num2str(reg_path(end))...
         ",quad_features=",num2str(use_quadratic_features),'.mat'],''),'sol_w')
-    % save(strjoin["data/generated_data/name_features"],'name_features')
+    % save("data/name_features",'name_features')
+    % save("data/groups",'groups')
 end
 
+
+%% Postprocessing
+% ind = 120;
+% disp(lambda(ind)/lambda(1))
+% 
+% Emodel = (sol_p(:,ind).'*amat_annual).';
+% deviation = Emodel - Ed;
+% disp(sum(abs(deviation))); 
+% disp(lambda(ind))
 
 
 %% END

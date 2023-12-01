@@ -15,11 +15,10 @@
 %   sol_w: m x 1 column vector -- dual solution
 %   sol_p: n x 1 column vector -- primal solution
 
-function [w_out,p_out,num_iters] = cdescent_solver_en(w_in,p_in,...
-    t,alpha,A,Ed,max_iters,tol)
-
+function [w_out,p_out,num_iters] = cdescent_solver_en(w_in,pprior,...
+    t,alpha,A,Ed,max_iter,tol)
 % Auxiliary variables -- For the algorithm
-tmp1 = ((p_in'*A)') - Ed;
+tmp1 = ((pprior'*A)') - Ed;
 tmp2 = A*w_in;
 wplus = w_in;
 
@@ -27,6 +26,8 @@ wplus = w_in;
 num_iters = 0; 
 flag_convergence = true;
 d = zeros(length(w_in),1);
+
+
 
 % In the following, we need to compute estimate the stepsize of the 
 % coordinate descent algorithm. This stepsize is derived from the analysis
@@ -74,8 +75,8 @@ while (flag_convergence)
     w_in = wplus;
 
     % Convergence check -- We use the optimality condition on the l1 normd
-    flag_convergence = ~convergence_criterion_en(num_iters,...
-            max_iters,t,alpha,wplus,tmp1,tol);
+    flag_convergence = ~(((num_iters >= 40) && (norm((1-alpha)*t*wplus + tmp1,inf) <= ...
+            alpha*t*(1 + tol))) || (num_iters >= max_iter));
 end
 
 % Final solutions

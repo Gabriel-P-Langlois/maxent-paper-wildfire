@@ -21,12 +21,9 @@
 % The regularization path (alpha = 0.35, with no quadratic features)
 % reg_path = [1:-0.01:0.9,...
 %     0.895:-0.005:0.30,...
-%     0.2975:-0.0025:0.01,...
-%     0.009:-0.001:0.001,...
-%     0.0009:-0.00005:0.0005];
-% takes about four minutes to complete with the nPDHG algorithm on GPL's
+%     0.2975:-0.0025:0.01];
+% takes about two minutes to complete with the nPDHG algorithm on GPL's
 % laptop.
-
 
 %% Options for the script
 % Options for new run and using quadratic features
@@ -45,14 +42,12 @@ use_cdescent = false;
 use_npdhg = true;
 
 % Elastic net parameter
-alpha = 0.35;
+alpha = 0.95;
 
 % Initialize the structure of the regularization path
 reg_path = [1:-0.01:0.9,...
     0.895:-0.005:0.30,...
-    0.2975:-0.0025:0.01,...
-    0.009:-0.001:0.001,...
-    0.0009:-0.00005:0.0005];
+    0.2975:-0.0025:0.01];
 
 % Threshold for using linear vs sublinear (sublinear if alpha > threshold)
 threshold = 0.45;
@@ -74,7 +69,6 @@ max_iters = 20000;
 % name_features:    Name of the features
 % idx_features:     Indices associated to the features
 % ind_nan_mths:     Indices of grid cells that are not used.
-% groups:           Groupings of the features for the group lasso
 
 % Note: We are averaging the temporal data individually over each month 
 % (i.e., spatial data set over the months of January through December).
@@ -102,6 +96,7 @@ l_max = length(lambda);
 %% Placeholder solutions and quantities for timings
 sol_w = zeros(m,l_max);
 sol_p = zeros(n0+n1,l_max); sol_p(:,1) = pprior;
+
 
 
 %% FIT AN ELASTIC NET REGULARIZED MAXENT MODEL VIA THE FISTA ALGORITHM
@@ -275,17 +270,29 @@ if(save_results)
     save(strjoin(["data/generated_data/w_sol_alpha=",num2str(alpha),...
         ",min_path=",num2str(reg_path(end))...
         ",quad_features=",num2str(use_quadratic_features),'.mat'],''),'sol_w')
-    % save("data/name_features",'name_features')
-    % save("data/groups",'groups')
+    % save(strjoin["data/generated_data/name_features"],'name_features')
 end
 
 
 %% Postprocessing
-% Identify group thresholds
-display_features_results(sol_w,lambda,name_features,groups)
+% TBC.
+% Features that are equal to zero at the end of the regularization path
+ind_zero = (sol_w(:,end) == 0);
+ind_num = (1:1:length(sol_w(:,end))).'.*ind_zero;
 
-% Plot the regularization path
-print_regularization_path(sol_w,lambda,groups);
+% Have a function that prints what features were found to be equal to zero,
+% and in which groups they belong to.
+
+% Print features that are equal to zero at the end of the regularization
+% path
+%disp(name_features(ind_zero));
+
+
+    % groups{1} = [1,2,3,4,5,7,8,14,15,16,17,18,19,23,24,27];   % fire 
+    % groups{2} = [6,12,13,22,25,28,32];                        % Antecedants
+    % groups{3} = [26,29,30,35];                                % Vegetation
+    % groups{4} = [9,10,11,31,33,34];                           % humans
+    % groups{5} = [20,21];                                      % Topography
 
 
 %% TODO

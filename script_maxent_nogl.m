@@ -10,6 +10,21 @@
 % Run the script from the project directory where ./data is located.
 
 
+%% Notes
+% The regularization path
+% reg_path = [1:-0.01:0.9,...
+%     0.895:-0.005:0.30,...
+%     0.2975:-0.0025:0.01];
+% takes about three minutes to complete with the nPDHG algorithm on GPL's
+% laptop.
+%
+% For this regularization path, this is the orders 
+% in which the groups appear:
+%
+%   But one should be careful about the interpretation here; see analysis
+%   with the elastic net maxent, for instance.
+
+
 %% Options for the script
 % Options for new run and using quadratic features
 new_run = true;
@@ -26,8 +41,8 @@ use_npdhg = true;
 
 % Initialize the structure of the regularization path
 reg_path = [1:-0.01:0.9,...
-    0.895:-0.005:0.35,...
-    0.3475:-0.0025:0.05];
+    0.895:-0.005:0.30,...
+    0.2975:-0.0025:0.01];
 
 % Tolerance for the optimality condition (for all methods)
 tol = 1e-5;
@@ -55,19 +70,13 @@ if(new_run)
 
     % Total number of features
     m = length(Ed);     
-
-    % groups{1} = [1,2,3,4,5,7,8,14,15,16,17,18,19,23,24,27];   % fire 
-    % groups{2} = [6,12,13,22,25,28,32];                        % Antecedants
-    % groups{3} = [26,29,30,35];                                % Vegetation
-    % groups{4} = [9,10,11,31,33,34];                           % humans
-    % groups{5} = [20,21];                                      % Topography
 end
 
 
 %% Construct regularization path for the elastic net method
 lambda_est = 0;
 for i=1:1:length(groups)
-    ind = groups{i};
+    ind = groups{2,i};
     lambda_est = max(lambda_est,norm(Ed(ind) - amat_annual(:,ind)'*pprior,2)...
         /sqrt(length(ind)));
 end
@@ -167,16 +176,25 @@ end
 % Save solutions and the regularization path to the data subdirectory,
 % which assumes you are working from the project directory.
 if(save_results)
-    save(strjoin(["data/generated_data/reg_path_nogl,npts=",...
-        num2str(npts_path),",min_path=",num2str(min_val_path),'.mat'],''),'lambda')
+    save(strjoin(["data/generated_data/reg_path_nogl,min_path=",...
+        num2str(reg_path(end)),'.mat'],''),'lambda')
     
-    save(strjoin(["data/generated_data/p_sol_nogl,npts=",...
-        num2str(npts_path),",min_path=",num2str(min_val_path),'.mat'],''),'sol_p')
+    save(strjoin(["data/generated_data/p_sol_nogl,min_path=",...
+        num2str(reg_path(end)),'.mat'],''),'sol_p')
     
-    save(strjoin(["data/generated_data/w_sol_nogl,npts=",...
-        num2str(npts_path),",min_path=",num2str(min_val_path),'.mat'],''),'sol_w')
-    % save(strjoin["data/generated_data/name_features"],'name_features')
+    save(strjoin(["data/generated_data/w_sol_nogl,min_path=",...
+        num2str(reg_path(end)),'.mat'],''),'sol_w')
+    % save("data/name_features",'name_features')
+    % save("data/groups",'groups')
 end
+
+
+%% Postprocessing
+% Identify group thresholds
+display_features_results(sol_w,lambda,name_features,groups)
+
+% Plot the regularization path
+print_regularization_path(sol_w,lambda,groups);
 
 
 %% END
