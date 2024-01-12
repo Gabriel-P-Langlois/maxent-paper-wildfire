@@ -36,9 +36,9 @@ set ( gca, 'xdir', 'reverse' )
 title('Sparsity plot')
 ylim([0,35])
 
-for g=1:1:num_groups
-    xline(reg_path(ind_instance_groups(g)),'-',{['Feature from the ',groups{1,g},' group']});
-end
+% for g=1:1:num_groups
+%     xline(reg_path(ind_instance_groups(g)),'-',{['Feature from the ',groups{1,g},' group']});
+% end
 
 
 

@@ -49,10 +49,10 @@ alpha = 0.35;
 
 % Initialize the structure of the regularization path
 reg_path = [1:-0.01:0.9,...
-    0.895:-0.005:0.30,...
-    0.2975:-0.0025:0.01,...
-    0.009:-0.001:0.001,...
-    0.0009:-0.00005:0.0005];
+    0.895:-0.005:0.30];
+    %0.2975:-0.0025:0.01];
+    %0.009:-0.001:0.001,...
+    %0.0009:-0.00005:0.0005];
 
 % Threshold for using linear vs sublinear (sublinear if alpha > threshold)
 threshold = 0.45;
@@ -282,10 +282,10 @@ end
 
 %% Postprocessing
 % Identify group thresholds
-display_features_results(sol_w,lambda,name_features,groups)
+%display_features_results(sol_w,lambda,name_features,groups)
 
 % Plot the regularization path
-print_regularization_path(sol_w,lambda,groups);
+%print_regularization_path(sol_w,lambda,groups);
 
 
 %% TODO

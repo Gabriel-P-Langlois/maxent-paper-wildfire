@@ -24,11 +24,11 @@ ind_instance_groups  = identify_group_thresholds(sol_w,lambda,groups);
 % Display results I: First hyperparameter to appear in each group
 disp(" ");
 for g=1:1:num_groups
-    disp(['The largest hyperparameter that results in a nonzero feature in the ', ...
-        groups{1,g}, ' group is equal to ', num2str(lambda(ind_instance_groups(g))/lambda(1)),' lambda_est.'])
-    disp(['The feature(s) found in the ', groups{1,g}, 'group at that hyperparameter is or are:'])
-    disp(name_features(intersect((sol_w(:,ind_instance_groups(g)) ~= 0).*(1:1:m).',groups{2,g})))
-    disp(" ")
+    %disp(['The largest hyperparameter that results in a nonzero feature in the ', ...
+    %    groups{1,g}, ' group is equal to ', num2str(lambda(ind_instance_groups(g))/lambda(1)),' lambda_est.'])
+    %disp(['The feature(s) found in the ', groups{1,g}, 'group at that hyperparameter is or are:'])
+    %disp(name_features(intersect((sol_w(:,ind_instance_groups(g)) ~= 0).*(1:1:m).',groups{2,g})))
+    %disp(" ")
 end
 disp("----------")
 
