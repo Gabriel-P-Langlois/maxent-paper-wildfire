@@ -15,6 +15,9 @@
 
 function  print_regularization_path(sol_w,lambda,groups)
 
+% Array for variable group names
+groups_alt = {'Fire', 'Antecedent', 'Vegetation', 'Human', 'Topography'};
+
 reg_path = lambda/lambda(1); l_max = length(reg_path);
 
 sparsity_plot = zeros(l_max,1);
@@ -36,9 +39,9 @@ set ( gca, 'xdir', 'reverse' )
 title('Sparsity plot')
 ylim([0,35])
 
-% for g=1:1:num_groups
-%     xline(reg_path(ind_instance_groups(g)),'-',{['Feature from the ',groups{1,g},' group']});
-% end
+for g=1:1:num_groups
+    xline(reg_path(ind_instance_groups(g)),'-',{['Feature from the ',groups_alt{g},' group']});
+end
 
 
 

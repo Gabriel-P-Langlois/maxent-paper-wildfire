@@ -12,8 +12,12 @@
 %           The first row contains the names of the groups
 %           The second row contains the indices of the groups
 
+
 function print_features_nonzero(sol_w_lambda,name_features,groups)
 ind_nonzero = (sol_w_lambda ~= 0).*(1:1:length(sol_w_lambda)).';
+
+% Array for variable group names
+groups_alt = {'Fire', 'Antecedent', 'Vegetation', 'Human', 'Topography'};
 
 % Identify features in groups that are found to be nonzero.
 num_groups = length(groups);
@@ -21,7 +25,7 @@ for g=1:1:num_groups
     ind_found = intersect(ind_nonzero,groups{2,g});
     if(~isempty(ind_found))
         disp(' ')
-        disp(['Features in the group ',groups{1,g}, ' that were found to be nonzero:'])
+        disp(['Features in the group ',groups_alt{g}, ' that were found to be nonzero:'])
         disp(name_features(ind_found))
     end
 end
