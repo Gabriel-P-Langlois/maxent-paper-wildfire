@@ -11,21 +11,6 @@
 
 
 %% Notes
-% The regularization path (alpha = 0.95, with no quadratic features)
-% reg_path = [1:-0.01:0.9,...
-%     0.895:-0.005:0.30,...
-%     0.2975:-0.0025:0.01];
-% takes about six minutes to complete with the nPDHG algorithm on GPL's
-% laptop.
-
-% The regularization path (alpha = 0.35, with no quadratic features)
-% reg_path = [1:-0.01:0.9,...
-%     0.895:-0.005:0.30,...
-%     0.2975:-0.0025:0.01,...
-%     0.009:-0.001:0.001,...
-%     0.0009:-0.00005:0.0005];
-% takes about four minutes to complete with the nPDHG algorithm on GPL's
-% laptop.
 
 
 %% Options for the script
@@ -45,17 +30,14 @@ use_cdescent = false;
 use_npdhg = true;
 
 % Elastic net parameter
-alpha = 0.35;
+alpha = 1.0;
 
 % Initialize the structure of the regularization path
-reg_path = [1:-0.01:0.9,...
-    0.895:-0.005:0.30];
-    %0.2975:-0.0025:0.01];
-    %0.009:-0.001:0.001,...
-    %0.0009:-0.00005:0.0005];
+reg_path = [1:-0.01:0.5,...
+    0.495:-0.005:0.10];
 
 % Threshold for using linear vs sublinear (sublinear if alpha > threshold)
-threshold = 0.45;
+threshold = 0.55;
 
 % Tolerance for the optimality condition (for all methods)
 tol = 1e-5;
@@ -263,18 +245,34 @@ end
 % Save solutions and the regularization path to the data subdirectory
 % Note: This assumes you are working from the project directory where
 % the data folder is located.
+
 if(save_results)
+    % Save the regularization path
     save(strjoin(["data/generated_data/reg_path_alpha=",num2str(alpha),...
         ",min_path=",num2str(reg_path(end)),...
         ",quad_features=",num2str(use_quadratic_features),'.mat'],''),'lambda')
     
+    % Save the probability solutions
     save(strjoin(["data/generated_data/p_sol_alpha=",num2str(alpha),...
         ",min_path=",num2str(reg_path(end)),...
         ",quad_features=",num2str(use_quadratic_features),'.mat'],''),'sol_p')
     
+    % Save the coefficients w characterizing the exponential family
     save(strjoin(["data/generated_data/w_sol_alpha=",num2str(alpha),...
         ",min_path=",num2str(reg_path(end))...
         ",quad_features=",num2str(use_quadratic_features),'.mat'],''),'sol_w')
+
+    % Save the hyperparameter thresholds for which we identify a new group
+    % NOTE: Use lambda(ind_threshold_groups) to find the lambdas at which a
+    % new group enters.
+    ind_threshold_groups = identify_group_thresholds(sol_w,lambda,groups);
+    save(strjoin(["data/generated_data/threshold_vals_alpha=",num2str(alpha),...
+       ",min_path=",num2str(reg_path(end)),...
+       ",quad_features=",num2str(use_quadratic_features),'.mat'],''),...
+    'ind_threshold_groups')
+    
+
+    % Uncomment if needed (but we shouldn't have to)
     % save("data/name_features",'name_features')
     % save("data/groups",'groups')
 end
@@ -282,30 +280,10 @@ end
 
 %% Postprocessing
 % Identify group thresholds
-%display_features_results(sol_w,lambda,name_features,groups)
+display_features_results(sol_w,lambda,name_features,groups)
 
 % Plot the regularization path
-%print_regularization_path(sol_w,lambda,groups);
-
-
-%% TODO
-% Generate lots of fire probabilities plot
-
-% Requirements: the prior distribution; probability solutions; lambda;
-% alpha, pempirical; 
-
-% Have a prior plot; elastic net with different alpha values;
-
-% Compare prior vs solutions
-% Prior figure; fix alpha and show different hyperparameters; multiple figs
-% like that
-
-% Feature importance
-%
-% Requirements: the solution w; lambda; alpha; groupings (for the group
-% lasso), name of the found features;
-%
-% Maybe send an example of the feature importance?
+print_regularization_path(sol_w,lambda,groups);
 
 
 %% END

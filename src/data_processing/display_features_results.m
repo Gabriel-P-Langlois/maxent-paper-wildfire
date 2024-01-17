@@ -13,8 +13,6 @@ function display_features_results(sol_w,lambda,name_features,groups)
 %           The first row contains the names of the groups
 %           The second row contains the indices of the groups
 
-% Array for variable group names
-groups_alt = {'Fire', 'Antecedent', 'Vegetation', 'Human', 'Topography'};
 
 % For each group, find the first (largest) hyperparameter for which a
 % nonzero feature appears.
@@ -27,12 +25,15 @@ ind_instance_groups  = identify_group_thresholds(sol_w,lambda,groups);
 disp(" ");
 for g=1:1:num_groups
     disp(['The largest hyperparameter that results in a nonzero feature in the ', ...
-        groups_alt{g}, ' group is equal to ', num2str(lambda(ind_instance_groups(g))/lambda(1)),' lambda_est.'])
-    disp(['The feature(s) found in the ', groups_alt{g}, 'group at that hyperparameter is or are:'])
+        groups{1,g}, ' group is equal to ', num2str(lambda(ind_instance_groups(g))/lambda(1)),' lambda_est.'])
+    disp(['The feature(s) found in the ', groups{1,g}, 'group at that hyperparameter is or are:'])
     disp(name_features(intersect((sol_w(:,ind_instance_groups(g)) ~= 0).*(1:1:m).',groups{2,g})))
     disp(" ")
 end
-disp("----------")
+disp("-------------------------")
+disp("-------------------------")
+disp("-------------------------")
+disp("")
 
 
 % Display results II: Nonzero features found each time a feature from 
@@ -45,20 +46,29 @@ for g=1:1:num_groups
     disp(' ')
     disp("-----")
 end
-disp("----------")
+disp("-------------------------")
+disp("-------------------------")
+disp("-------------------------")
+disp("")
 
 
 % Display results III: Print zero features found at the end of the
 % regularization path
 disp("The following features were found to be zero at the end of the regularization path:")
 print_features_zero(sol_w(:,end),name_features,groups)
-
+disp("-------------------------")
+disp("-------------------------")
+disp("-------------------------")
+disp("")
 
 
 % Display results IV: Print nonzero features found at the end of the
 % regularization path
 disp("The following features were found to be zero at the end of the regularization path:")
 print_features_nonzero(sol_w(:,end),name_features,groups)
+disp("-------------------------")
+disp("-------------------------")
+disp("-------------------------")
 
 %% END
 end

@@ -35,9 +35,8 @@ use_fista = false;
 use_npdhg = true;
 
 % Initialize the structure of the regularization path
-reg_path = [1:-0.01:0.9,...
-    0.895:-0.005:0.30,...
-    0.2975:-0.0025:0.01];
+reg_path = [1:-0.01:0.5,...
+    0.495:-0.005:0.10];
 
 % Tolerance for the optimality condition (for all methods)
 tol = 1e-6;

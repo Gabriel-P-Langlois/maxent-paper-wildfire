@@ -11,18 +11,6 @@
 
 
 %% Notes
-% The regularization path
-% reg_path = [1:-0.01:0.9,...
-%     0.895:-0.005:0.30,...
-%     0.2975:-0.0025:0.01];
-% takes about three minutes to complete with the nPDHG algorithm on GPL's
-% laptop.
-%
-% For this regularization path, this is the orders 
-% in which the groups appear:
-%
-%   But one should be careful about the interpretation here; see analysis
-%   with the elastic net maxent, for instance.
 
 
 %% Options for the script
@@ -40,9 +28,8 @@ use_fista = false;
 use_npdhg = true;
 
 % Initialize the structure of the regularization path
-reg_path = [1:-0.01:0.9,...
-    0.895:-0.005:0.30,...
-    0.2975:-0.0025:0.01];
+reg_path = [1:-0.01:0.5,...
+    0.495:-0.005:0.10];
 
 % Tolerance for the optimality condition (for all methods)
 tol = 1e-5;
@@ -184,8 +171,15 @@ if(save_results)
     
     save(strjoin(["data/generated_data/w_sol_nogl,min_path=",...
         num2str(reg_path(end)),'.mat'],''),'sol_w')
-    % save("data/name_features",'name_features')
-    % save("data/groups",'groups')
+
+    % Save the hyperparameter thresholds for which we identify a new group
+    % NOTE: Use lambda(ind_threshold_groups) to find the lambdas at which a
+    % new group enters.
+    ind_threshold_groups = identify_group_thresholds(sol_w,lambda,groups);
+    save(strjoin(["data/generated_data/threshold_vals_alpha=",num2str(alpha),...
+       ",min_path=",num2str(reg_path(end)),...
+       ",quad_features=",num2str(use_quadratic_features),'.mat'],''),...
+    'ind_threshold_groups')
 end
 
 

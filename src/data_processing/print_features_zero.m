@@ -15,16 +15,13 @@
 function print_features_zero(sol_w_lambda,name_features,groups)
 ind_zero = (sol_w_lambda == 0).*(1:1:length(sol_w_lambda)).';
 
-% Array for variable group names
-groups_alt = {'Fire', 'Antecedent', 'Vegetation', 'Human', 'Topography'};
-
 % Identify features in groups that are found to be nonzero.
 num_groups = length(groups);
 for g=1:1:num_groups
     ind_found = intersect(ind_zero,groups{2,g});
     if(~isempty(ind_found))
         disp(' ')
-        disp(['Features in the group ',groups_alt{g}, ' that were found to be zero:'])
+        disp(['Features in the group ',groups{1,g}, ' that were found to be zero:'])
         disp(name_features(ind_found))
     end
 end

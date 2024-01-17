@@ -24,12 +24,11 @@ amat(:,[4,6,7,9,11,12,13,14,30,35,38]) = [];
 name_features([4,6,7,9,11,12,13,14,30,35,38]) = [];
 
 % Groups extraction
-
-groups{1,1} = name_features([1,2,3,4,5,7,8,14,15,16,17,18,19,23,24,27]);
-groups{1,2} = name_features([6,12,13,22,25,28,32]);
-groups{1,3} = name_features([26,29,30,35]);
-groups{1,4} = name_features([9,10,11,31,33,34]);
-groups{1,5} = name_features([20,21]);
+groups{1,1} = 'Fire';
+groups{1,2} = 'Antecedent';
+groups{1,3} = 'Vegetation';
+groups{1,4} = 'Human';
+groups{1,5} = 'Topography';
 
 groups{2,1} = [1,2,3,4,5,7,8,14,15,16,17,18,19,23,24,27];   % fire 
 groups{2,2} = [6,12,13,22,25,28,32];                        % Antecedants
