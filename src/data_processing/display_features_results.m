@@ -64,7 +64,7 @@ disp("")
 
 % Display results IV: Print nonzero features found at the end of the
 % regularization path
-disp("The following features were found to be zero at the end of the regularization path:")
+disp("The following features were found to be nonzero at the end of the regularization path:")
 print_features_nonzero(sol_w(:,end),name_features,groups)
 disp("-------------------------")
 disp("-------------------------")
