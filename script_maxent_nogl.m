@@ -52,8 +52,8 @@ max_iter = 20000;
 
 if(new_run)
     % Read the data, which is assumed to be stored locally (not on github).
-    [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,idx_features,...
-        ind_nan_mths,groups] = prepare_wildfire_data(false);
+    [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,...
+        ind_nan_mths,groups] = prepare_wildfire_data;
 
     % Total number of features
     m = length(Ed);     

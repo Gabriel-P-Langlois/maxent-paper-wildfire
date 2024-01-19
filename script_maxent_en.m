@@ -16,7 +16,6 @@
 %% Options for the script
 % Options for new run and using quadratic features
 new_run = true;
-use_quadratic_features = false;
 
 % Option to output the result at each iteration if desired
 display_output = false;
@@ -63,8 +62,8 @@ max_iters = 20000;
 
 if(new_run)
     % Read the data, which is assumed to be stored locally (not on github).
-    [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,idx_features,...
-        ind_nan_mths,groups] = prepare_wildfire_data(use_quadratic_features);
+    [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,...
+        ind_nan_mths,groups] = prepare_wildfire_data;
     m = length(Ed);     % Number of features
 end
 
