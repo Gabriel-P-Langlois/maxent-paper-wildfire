@@ -21,7 +21,7 @@ new_run = true;
 display_output = false;
 
 % Option to save the results at the end if desired
-save_results = false;
+save_results = true;
 
 % Specify which algorithm to use. Note: Only one should be specified.
 use_fista = false;
@@ -47,13 +47,13 @@ max_iter = 20000;
 % n1:               Number of presence data points
 % name_features:    Name of the features
 % idx_features:     Indices associated to the features
-% ind_nan_mths:     Indices of grid cells that are not used
+% ind_nan_months:     Indices of grid cells that are not used
 % groups:           Groupings of the features for the group lasso
 
 if(new_run)
     % Read the data, which is assumed to be stored locally (not on github).
     [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,...
-        ind_nan_mths,groups] = prepare_wildfire_data;
+        ind_nan_months,groups] = prepare_wildfire_data;
 
     % Total number of features
     m = length(Ed);     
@@ -165,9 +165,14 @@ end
 if(save_results)
     save(strjoin(["data/generated_data/reg_path_nogl,min_path=",...
         num2str(reg_path(end)),'.mat'],''),'lambda')
-    
+
+    % Note: Reshaped as a two-dimensional arrays of points (entries x
+    % length_path). If the format (entries_per_month x months x
+    % length_path) is desired, then uncomment the line just before the end
+    % statement in the script reshape_probability
+    reshaped_sol_p = reshape_probability(sol_p,ind_nan_months,length(reg_path));
     save(strjoin(["data/generated_data/p_sol_nogl,min_path=",...
-        num2str(reg_path(end)),'.mat'],''),'sol_p')
+        num2str(reg_path(end)),'.mat'],''),'reshaped_sol_p')
     
     save(strjoin(["data/generated_data/w_sol_nogl,min_path=",...
         num2str(reg_path(end)),'.mat'],''),'sol_w')
@@ -177,9 +182,7 @@ if(save_results)
     % new group enters.
     ind_threshold_groups = identify_group_thresholds(sol_w,lambda,groups);
     save(strjoin(["data/generated_data/threshold_vals_alpha=",num2str(alpha),...
-       ",min_path=",num2str(reg_path(end)),...
-       ",quad_features=",num2str(use_quadratic_features),'.mat'],''),...
-    'ind_threshold_groups')
+       ",min_path=",num2str(reg_path(end)),'.mat'],''),'ind_threshold_groups')
 end
 
 

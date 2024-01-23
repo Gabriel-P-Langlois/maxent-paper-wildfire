@@ -53,7 +53,7 @@ max_iter = 20000;
 % n1:               Number of presence data points
 % name_features:    Name of the features
 % idx_features:     Indices associated to the features
-% ind_nan_mths:     Indices of grid cells that are not used.
+% ind_nan_months:     Indices of grid cells that are not used.
 % groups:           Groupings of the features for the group lasso
 
 % Note: We are averaging the temporal data individually over each month 
@@ -62,7 +62,7 @@ max_iter = 20000;
 if(new_run)
     % Read the data, which is assumed to be stored locally (not on github).
     [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,...
-        ind_nan_mths,groups] = prepare_wildfire_data;
+        ind_nan_months,groups] = prepare_wildfire_data;
     m = length(Ed);     % Number of features
 end
 
@@ -169,18 +169,18 @@ end
 % the data folder is located.
 if(save_results)
     save(strjoin(["data/generated_data/reg_path_linf",...
-        ",min_path=",num2str(reg_path(end))...
-        ",quad_features=",num2str(use_quadratic_features),'.mat'],''),'lambda')
+        ",min_path=",num2str(reg_path(end)),'.mat'],''),'lambda')
     
+    % Note: Reshaped as a two-dimensional arrays of points (entries x
+    % length_path). If the format (entries_per_month x months x
+    % length_path) is desired, then uncomment the line just before the end
+    % statement in the script reshape_probability
+    reshaped_sol_p = reshape_probability(sol_p,ind_nan_months,length(reg_path));
     save(strjoin(["data/generated_data/p_sol_linf",...
-        ",min_path=",num2str(reg_path(end))...
-        ",quad_features=",num2str(use_quadratic_features),'.mat'],''),'sol_p')
+        ",min_path=",num2str(reg_path(end)),'.mat'],''),'reshaped_sol_p')
     
     save(strjoin(["data/generated_data/w_sol_linf",...
-        ",min_path=",num2str(reg_path(end))...
-        ",quad_features=",num2str(use_quadratic_features),'.mat'],''),'sol_w')
-    % save("data/name_features",'name_features')
-    % save("data/groups",'groups')
+        ",min_path=",num2str(reg_path(end)),'.mat'],''),'sol_w')
 end
 
 

@@ -54,7 +54,7 @@ max_iters = 20000;
 % n1:               Number of presence data points
 % name_features:    Name of the features
 % idx_features:     Indices associated to the features
-% ind_nan_mths:     Indices of grid cells that are not used.
+% ind_nan_months:     Indices of grid cells that are not used.
 % groups:           Groupings of the features for the group lasso
 
 % Note: We are averaging the temporal data individually over each month 
@@ -63,7 +63,7 @@ max_iters = 20000;
 if(new_run)
     % Read the data, which is assumed to be stored locally (not on github).
     [amat_annual,pprior,pempirical,Ed,n0,n1,name_features,...
-        ind_nan_mths,groups] = prepare_wildfire_data;
+        ind_nan_months,groups] = prepare_wildfire_data;
     m = length(Ed);     % Number of features
 end
 
@@ -249,17 +249,25 @@ if(save_results)
     % Save the regularization path
     save(strjoin(["data/generated_data/reg_path_alpha=",num2str(alpha),...
         ",min_path=",num2str(reg_path(end)),...
-        ",quad_features=",num2str(use_quadratic_features),'.mat'],''),'lambda')
+        '.mat'],''),'lambda')
     
-    % Save the probability solutions
+    % Reshape the probability distributions and then save it
+
+    % Note: Reshaped as a two-dimensional arrays of points (entries x
+    % length_path). If the format (entries_per_month x months x
+    % length_path) is desired, then uncomment the line just before the end
+    % statement in the script reshape_probability
+    reshaped_sol_p = reshape_probability(sol_p,ind_nan_months,length(reg_path));
+
+
     save(strjoin(["data/generated_data/p_sol_alpha=",num2str(alpha),...
         ",min_path=",num2str(reg_path(end)),...
-        ",quad_features=",num2str(use_quadratic_features),'.mat'],''),'sol_p')
+        '.mat'],''),'reshaped_sol_p')
     
     % Save the coefficients w characterizing the exponential family
     save(strjoin(["data/generated_data/w_sol_alpha=",num2str(alpha),...
-        ",min_path=",num2str(reg_path(end))...
-        ",quad_features=",num2str(use_quadratic_features),'.mat'],''),'sol_w')
+        ",min_path=",num2str(reg_path(end)),...
+        '.mat'],''),'sol_w')
 
     % Save the hyperparameter thresholds for which we identify a new group
     % NOTE: Use lambda(ind_threshold_groups) to find the lambdas at which a
@@ -267,8 +275,7 @@ if(save_results)
     ind_threshold_groups = identify_group_thresholds(sol_w,lambda,groups);
     save(strjoin(["data/generated_data/threshold_vals_alpha=",num2str(alpha),...
        ",min_path=",num2str(reg_path(end)),...
-       ",quad_features=",num2str(use_quadratic_features),'.mat'],''),...
-    'ind_threshold_groups')
+       '.mat'],''),'ind_threshold_groups')
     
 
     % Uncomment if needed (but we shouldn't have to)
