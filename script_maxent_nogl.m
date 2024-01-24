@@ -181,7 +181,7 @@ if(save_results)
     % NOTE: Use lambda(ind_threshold_groups) to find the lambdas at which a
     % new group enters.
     ind_threshold_groups = identify_group_thresholds(sol_w,lambda,groups);
-    save(strjoin(["data/generated_data/threshold_vals_alpha=",num2str(alpha),...
+    save(strjoin(["data/generated_data/threshold_vals_nogl",...
        ",min_path=",num2str(reg_path(end)),'.mat'],''),'ind_threshold_groups')
 end
 
