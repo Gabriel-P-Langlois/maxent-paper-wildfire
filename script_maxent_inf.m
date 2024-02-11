@@ -10,18 +10,9 @@
 % Run the script from the project directory where ./data is located.
 
 
-%% Notes
-% The regularization path (with quadratic features)
-% reg_path = [1:-0.01:0.9,...
-%     0.895:-0.005:0.30,...
-%     0.2975:-0.0025:0.01];
-% takes about ten minutes to complete with the nPDHG algorithm on GPL's
-% laptop.
-
-
 %% Options for the script
 % Options for new run and using quadratic features
-new_run = true;
+new_run = false;
 
 % Option to output the result at each iteration if desired
 display_output = false;
@@ -30,18 +21,19 @@ display_output = false;
 save_results = false;
 
 % Specify which algorithm to use. Note: Only one should be specified.
-use_fista = false;
-use_npdhg = true;
+use_fista = true;
+use_npdhg = false;
 
 % Initialize the structure of the regularization path
-reg_path = [1:-0.01:0.5,...
-    0.495:-0.005:0.10];
+reg_path = [1:-0.01:0.9,...
+    0.895:-0.005:0.30,...
+    0.2975:-0.0025:0.05];
 
 % Tolerance for the optimality condition (for all methods)
-tol = 1e-6;
+tol = 1e-5;
 
 % Maximum number of iterations in each algorithm before stopping
-max_iter = 20000;
+max_iter = 40000;
 
 
 %% Data extraction
@@ -93,7 +85,7 @@ if(use_fista)
     
     for i=2:1:l_max
         tic
-        disp(['Iteration ',num2str(i),'/',num2str(l_max)])
+%        disp(['Iteration ',num2str(i),'/',num2str(l_max)])
 
         % Call the FISTA solver
         tau = 1/L22;
@@ -135,7 +127,7 @@ if(use_npdhg)
 
     for i=2:1:l_max
         tic
-        disp(['Iteration ',num2str(i),'/',num2str(l_max)])
+%        disp(['Iteration ',num2str(i),'/',num2str(l_max)])
 
         % Call the nPDHG solver
         theta = 0; tau = 2; sigma = 0.5/L12_sq;

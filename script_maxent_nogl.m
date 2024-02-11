@@ -15,27 +15,31 @@
 
 %% Options for the script
 % Options for new run and using quadratic features
-new_run = true;
+new_run = false;
 
 % Option to output the result at each iteration if desired
 display_output = false;
 
 % Option to save the results at the end if desired
-save_results = true;
+save_results = false;
+
+% Postprocess results
+postprocess_results = false;
 
 % Specify which algorithm to use. Note: Only one should be specified.
-use_fista = false;
-use_npdhg = true;
+use_fista = true;
+use_npdhg = false;
 
 % Initialize the structure of the regularization path
-reg_path = [1:-0.01:0.5,...
-    0.495:-0.005:0.10];
+reg_path = [1:-0.01:0.9,...
+    0.895:-0.005:0.30,...
+    0.2975:-0.0025:0.05];
 
 % Tolerance for the optimality condition (for all methods)
 tol = 1e-5;
 
 % Maximum number of iterations in each algorithm before stopping
-max_iter = 20000;
+max_iter = 40000;
 
 
 %% Data extraction
@@ -90,7 +94,7 @@ if(use_fista)
         tic
 
         % Display percentage of zero coefficients
-        disp(['Iteration ',num2str(i),'/',num2str(l_max)])
+%        disp(['Iteration ',num2str(i),'/',num2str(l_max)])
         
         % Call the FISTA solver
         tau = 1/L22;
@@ -133,7 +137,7 @@ if(use_npdhg)
         tic
 
         % Display percentage of zero coefficients
-        disp(['Iteration ',num2str(i),'/',num2str(l_max)])
+%        disp(['Iteration ',num2str(i),'/',num2str(l_max)])
         
         % Call the nPDHG solver
         theta = 0; tau = 2; sigma = 0.5/L12_sq;
@@ -187,11 +191,12 @@ end
 
 
 %% Postprocessing
-% Identify group thresholds
-display_features_results(sol_w,lambda,name_features,groups)
-
-% Plot the regularization path
-print_regularization_path(sol_w,lambda,groups);
-
+if(postprocess_results)
+    % Identify group thresholds
+    display_features_results(sol_w,lambda,name_features,groups)
+    
+    % Plot the regularization path
+    print_regularization_path(sol_w,lambda,groups);
+end
 
 %% END
