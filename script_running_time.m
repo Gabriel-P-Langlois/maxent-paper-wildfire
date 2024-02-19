@@ -55,7 +55,7 @@
 % FISTA with EN and alpha = 0.95 (5 runs): 4208.01 seconds
 % FISTA with EN and alpha = 0.40 (5 runs): 1407.22 seconds
 %
-% CD with EN and alpha = 0.95 (5 runs): 
+% CD with EN and alpha = 0.95 (5 runs): 5562.19 seconds
 % CD with EN and alpha = 0.40 (5 runs): 1018.73 seconds
 
 
@@ -80,7 +80,7 @@ end
 % Run the script (with new_run = false)
 tic
 for i=1:1:nb_runs
-    script_maxent_inf
+    script_maxent_en
 end
 time_total = toc;
 

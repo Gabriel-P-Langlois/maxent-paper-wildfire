@@ -115,6 +115,8 @@ pprior = pprior/sum(pprior);
 % Note: region labeled as 0 in the data is region labeled as 1 in the code.
 % n1_r == nb of grid points with a fire within the region i.
 
+% Note:
+
 r = double(max(reg_indices_annual)+1);
 nr = zeros(r,1);
 pempirical_r = zeros(r,1); pempirical = zeros(n0+n1,1); sum_pempirical = 0;

@@ -15,7 +15,7 @@
 
 %% Options for the script
 % Options for new run and using quadratic features
-new_run = false;
+new_run = true;
 
 % Option to output the result at each iteration if desired
 display_output = false;
@@ -28,11 +28,11 @@ postprocess_results = false;
 
 % Specify which algorithm to use. Note: Only one should be specified.
 use_fista = false;
-use_cdescent = true;
-use_npdhg = false;
+use_cdescent = false;
+use_npdhg = true;
 
 % Elastic net parameter
-alpha = 0.40;
+alpha = 0.95;
 
 % Initialize the structure of the regularization path
 reg_path = [1:-0.01:0.50,...
