@@ -1,9 +1,3 @@
-%% Description
-%
-% This is the main function for solving the Elastic net regularized
-% Maxent problem with the FISTA algorithm.
-
-
 function [w_out,p_out,num_iters] = fista_solver_en(w_in,pprior,t,...
     alpha,A,tau,mu,q,Ed,max_iters,tol)
 

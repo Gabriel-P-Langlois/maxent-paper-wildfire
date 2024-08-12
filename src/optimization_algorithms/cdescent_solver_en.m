@@ -1,20 +1,3 @@
-%% Description
-% Nonlinear PDHG method for solving Maxent with lambda*norm(\cdot)_{1}
-% Input variables:
-%   w_in: m x 1 vector -- Weights of the gibbs distribution.
-%   p_in: n x 1 vector -- Parameterization of the gibbs probability
-%   distribution, where p(j) = pprior(j)e^{u(j)-C}.
-%   t: Positive number -- Hyperparameter.
-%   alpha: parameter for the convexity between the l1 norm and l22 norms.
-%   A: n x m matrix -- Matrix of features (m) for each grid point (n).
-%   Ed: m-dimensional vector -- Observed features of presence-only data. 
-%   max_iter: Positive integer -- Maximum number of iterations.
-%   tol:    Small number -- used for the convergence criterion
-
-% Output:
-%   sol_w: m x 1 column vector -- dual solution
-%   sol_p: n x 1 column vector -- primal solution
-
 function [w_out,p_out,num_iters] = cdescent_solver_en(w_in,p_in,...
     t,alpha,A,Ed,max_iters,tol)
 

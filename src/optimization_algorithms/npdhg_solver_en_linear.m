@@ -1,22 +1,3 @@
-%% Description
-% Nonlinear PDHG method for solving Maxent with elastic net penalty
-    % Input:
-    %   w_in: m x 1 vector -- Weights of the gibbs distribution.
-    %   pprior: n x 1 vector -- Prior distribution
-    %   distribution, where p(j) = pprior(j)e^{u(j)-C}, C = normalizing
-    %   constant
-    %   t: Positive number -- Hyperparameter.
-    %   A: n x m matrix -- Matrix of features (m) for each grid point (n).
-    %   tau, sigma, theta: Positive numbers -- Stepsize parameters.
-    %   Ed: m-dimensional vector -- Observed features of presence-only data. 
-    %   max_iter: Positive integer -- Maximum number of iterations.
-    %   tol:    Small number -- used for the convergence criterion
-    
-    % Output:
-    %   w_out: m x 1 column vector -- dual solution
-    %   p_out: n x 1 column vector -- primal solution
-    %   num_iters: integer -- number of iterations
-
 function [w_out,p_out,num_iters] = npdhg_solver_en_linear(w_in,pprior,...
     t,alpha,A,tau,sigma,theta,Ed,max_iters,tol)
 

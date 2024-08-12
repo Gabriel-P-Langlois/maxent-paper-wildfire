@@ -1,9 +1,3 @@
-%% Description
-%
-% This is the main function for solving the Elastic net regularized
-% Maxent problem with the FISTA algorithm.
-
-
 function [w_out,p_out,num_iters] = fista_solver_nogl(w_in,pprior,t,groups,...
     A,tau,mu,q,Ed,max_iters,tol)
 
@@ -19,7 +13,7 @@ function [w_out,p_out,num_iters] = fista_solver_nogl(w_in,pprior,t,groups,...
         % Update counter
         num_iters = num_iters + 1;
 
-        % Stepsies
+        % Steps
         tkplus = 0.5*(1-q*(tk^2) + sqrt((1-q*(tk^2))^2 + 4*(tk^2)));
         beta = ((tk-1)/tkplus)*(1+mu*tau*(1-tkplus));
 
@@ -34,7 +28,7 @@ function [w_out,p_out,num_iters] = fista_solver_nogl(w_in,pprior,t,groups,...
         % Evaluate argument of the elastic net proximal operator
         tmp = (pplus.'*A).' - Ed;
 
-        % Compute the EN proximal operator
+        % Compute the non-overlapping group lasso proximal operator
         wplus = proximal_operator_nogl(yk - tau*(tmp),t*tau,groups);
 
         % Convergence check -- Check that the optimality condition of the
